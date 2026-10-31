@@ -151,3 +151,23 @@ export const createMeasurementRecordSchema = z
       }
     });
   });
+
+// ---------- Payment schedule ----------
+
+export const replacePaymentScheduleSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        /** Keeps an existing item, so payments recorded against it stay linked. */
+        id: z.uuid().optional(),
+        label: text(160),
+        dueDate: z.iso.date(),
+        amountCentavos: z.number().int().min(1).max(2_147_483_647),
+      }),
+    )
+    .max(50)
+    .refine((items) => {
+      const ids = items.flatMap((item) => (item.id ? [item.id] : []));
+      return new Set(ids).size === ids.length;
+    }, 'Each item can appear once'),
+});

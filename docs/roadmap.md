@@ -87,7 +87,7 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 
 ### Money
 
-- [ ] Payment schedules
+- [x] Payment schedules
 - [ ] Payment tracking
 - [ ] Expenses
 

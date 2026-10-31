@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import type { Garment } from '@/features/garments/production-page';
 import { apiFetch } from '@/lib/api';
 import { useTenantAccess } from '@/lib/use-tenant-access';
+import { PaymentSchedule } from './payment-schedule';
 import type { Project } from './projects-page';
 
 export function ProjectDetailPage() {
@@ -93,6 +94,7 @@ export function ProjectDetailPage() {
         tenantId={tenantId}
         manager={manager}
       />
+      <PaymentSchedule project={data} tenantId={tenantId} manager={manager} canEdit={!archived} />
       <Garments projectId={id} tenantId={tenantId} canAdd={!archived} />
     </div>
   );

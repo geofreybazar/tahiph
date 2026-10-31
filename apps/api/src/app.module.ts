@@ -11,6 +11,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { GarmentsModule } from './modules/garments/garments.module';
 import { HealthModule } from './modules/health/health.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { MediaModule } from './modules/media/media.module';
 import { MeasurementsModule } from './modules/measurements/measurements.module';
@@ -34,6 +35,7 @@ import { PublicSitesModule } from './modules/public-sites/public-sites.module';
     ProjectsModule,
     MeasurementsModule,
     GarmentsModule,
+    PaymentsModule,
     PlatformModule,
     PublicSitesModule,
   ],

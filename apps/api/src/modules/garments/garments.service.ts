@@ -182,9 +182,9 @@ export class GarmentsService {
   async removeMedia(id: string, mediaFileId: string): Promise<void> {
     const link = await this.db.garmentMedia.findFirst({ where: { garmentId: id, mediaFileId } });
     if (!link) throw new ApiException(404, 'NOT_FOUND', 'File not found');
-    await this.media.assertCanRemove(mediaFileId);
-    await this.db.garmentMedia.delete({ where: { id: link.id } });
-    await this.media.remove(mediaFileId);
+    await this.media.remove(mediaFileId, (tx) =>
+      tx.garmentMedia.delete({ where: { id: link.id } }),
+    );
   }
 
   /** Refused once work has started, so production history can't disappear. */

@@ -192,7 +192,7 @@ The Orders screens use these endpoints, because project = order.
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | GET | `/projects/:id/payment-schedule` | Schedule | O A S |
-| PUT | `/projects/:id/payment-schedule` | Replace schedule | O A |
+| PUT | `/projects/:id/payment-schedule` | Replace schedule. Items sent with an `id` are kept. The response reports any difference from the price, as a warning | O A |
 | GET | `/projects/:id/payments` | One project's payments | O A S |
 | POST | `/projects/:id/payments` | Record a payment or refund | O A S (refunds O A) |
 | POST | `/payments/:id/void` | Void, with reason; audited | O A |
