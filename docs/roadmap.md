@@ -93,7 +93,7 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 
 ### Scheduling and insight
 
-- [ ] Appointments and fittings
+- [x] Appointments and fittings
 - [ ] Business dashboard
 - [ ] Basic reports
 

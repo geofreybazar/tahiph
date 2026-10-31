@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AcceptInvitePage } from '@/features/auth/accept-invite-page';
 import { LoginPage } from '@/features/auth/login-page';
 import { ResetPasswordPage } from '@/features/auth/reset-password-page';
+import { AppointmentsPage } from '@/features/appointments/appointments-page';
 import { ClientDetailPage } from '@/features/clients/client-detail-page';
 import { ClientsPage } from '@/features/clients/clients-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
@@ -80,6 +81,7 @@ function SignedInApp() {
               <Route path="production" element={<ProductionPage />} />
               <Route path="garments/:id" element={<GarmentDetailPage />} />
               <Route path="measurements/:id" element={<ProfilePage />} />
+              <Route path="appointments" element={<AppointmentsPage />} />
             </>
           )}
           <Route

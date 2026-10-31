@@ -181,11 +181,11 @@ The Orders screens use these endpoints, because project = order.
 
 | Method | Path | Purpose | Access |
 |---|---|---|---|
-| GET | `/appointments` | Calendar, by date range | O A S |
+| GET | `/appointments` | Calendar, by Manila days with `from` and `to`, or by client, project or garment | O A S |
 | POST | `/appointments` | Create | O A S |
 | GET | `/appointments/:id` | Detail | O A S |
-| PATCH | `/appointments/:id` | Update or reschedule | O A S |
-| POST | `/appointments/:id/status` | Complete, cancel, no-show | O A S |
+| PATCH | `/appointments/:id` | Update or reschedule, while scheduled. A garment or project fills in its project and client; a mismatch is a 422 | O A S |
+| POST | `/appointments/:id/status` | Complete, cancel, no-show, or back to scheduled to correct a mistake | O A S |
 
 ## Payments
 

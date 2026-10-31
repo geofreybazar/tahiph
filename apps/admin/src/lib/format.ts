@@ -6,3 +6,12 @@ const dateFormat = new Intl.DateTimeFormat('en-PH', {
 export function formatDate(iso: string): string {
   return dateFormat.format(new Date(iso));
 }
+
+const timeFormat = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila',
+  timeStyle: 'short',
+});
+
+export function formatTime(iso: string): string {
+  return timeFormat.format(new Date(iso));
+}

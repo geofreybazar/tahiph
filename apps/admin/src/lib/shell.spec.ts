@@ -34,6 +34,7 @@ describe('navigationFor', () => {
       'Clients',
       'Orders',
       'Production',
+      'Appointments',
     ]);
   });
 

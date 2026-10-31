@@ -119,6 +119,24 @@ enum ExpenseKind {
   @@map("expense_kind")
 }
 
+enum AppointmentType {
+  consultation
+  fitting
+  pickup
+  other
+
+  @@map("appointment_type")
+}
+
+enum AppointmentStatus {
+  scheduled
+  completed
+  cancelled
+  no_show
+
+  @@map("appointment_status")
+}
+
 // ---------- Global models ----------
 
 model Tenant {
@@ -144,6 +162,8 @@ model Tenant {
   measurementProfiles  MeasurementProfile[]
   measurementRecords   MeasurementRecord[]
   measurementValues    MeasurementValue[]
+
+  appointments Appointment[]
 
   @@map("tenants")
 }
@@ -286,6 +306,8 @@ model Client {
   projects            WeddingProject[]
   measurementProfiles MeasurementProfile[]
 
+  appointments Appointment[]
+
   @@unique([tenantId, id])
   @@index([tenantId, fullName])
   @@index([tenantId, email])
@@ -314,6 +336,8 @@ model WeddingProject {
   expenses             Expense[]
   payments             Payment[]
 
+  appointments Appointment[]
+
   @@unique([tenantId, id])
   @@unique([tenantId, projectNumber])
   @@index([tenantId, clientId])
@@ -341,6 +365,8 @@ model Garment {
   events            GarmentStageEvent[]
   media             GarmentMedia[]
   measurementRecord MeasurementRecord?  @relation(fields: [tenantId, measurementRecordId], references: [tenantId, id], onDelete: Restrict)
+
+  appointments Appointment[]
 
   @@unique([tenantId, id])
   @@index([tenantId, projectId])
@@ -528,4 +554,32 @@ model Expense {
   @@index([tenantId, kind, incurredOn])
   @@index([tenantId, projectId])
   @@map("expenses")
+}
+
+model Appointment {
+  id        String            @id @default(uuid(7)) @db.Uuid
+  tenantId  String            @map("tenant_id") @db.Uuid
+  clientId  String?           @map("client_id") @db.Uuid
+  projectId String?           @map("project_id") @db.Uuid
+  garmentId String?           @map("garment_id") @db.Uuid
+  type      AppointmentType
+  status    AppointmentStatus @default(scheduled)
+  startsAt  DateTime          @map("starts_at") @db.Timestamptz
+  endsAt    DateTime          @map("ends_at") @db.Timestamptz
+  location  String?
+  notes     String?
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  client  Client?         @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  project WeddingProject? @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  garment Garment?        @relation(fields: [tenantId, garmentId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, startsAt])
+  @@index([tenantId, clientId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, garmentId])
+  @@map("appointments")
 }

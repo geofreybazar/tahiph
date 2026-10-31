@@ -11,6 +11,7 @@ const ITEMS: NavItem[] = [
   { to: '/clients', label: 'Clients' },
   { to: '/orders', label: 'Orders' },
   { to: '/production', label: 'Production' },
+  { to: '/appointments', label: 'Appointments' },
   { to: '/payments', label: 'Payments', managersOnly: true },
   { to: '/reports', label: 'Reports', managersOnly: true },
   { to: '/expenses', label: 'Expenses', managersOnly: true },
