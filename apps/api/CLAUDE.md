@@ -27,7 +27,7 @@ prisma/
 prisma.config.ts
 ```
 
-Modules: tenants, members, clients, projects, garments, measurements, appointments, payments, expenses, dashboard, reports, media, platform. Phase 2 adds public-sites, content, inquiries, portal and notifications. There's no orders module (ADR 0007).
+Modules: tenants, members, clients, projects, garments, measurements, appointments, payments, expenses, reports (including the dashboard routes), media, platform. Phase 2 adds public-sites, content, inquiries, portal and notifications. There's no orders module (ADR 0007).
 
 ## Boundaries
 

@@ -16,7 +16,7 @@ import { ProjectDetailPage } from '@/features/projects/project-detail-page';
 import { ProjectsPage } from '@/features/projects/projects-page';
 import { MembersPage } from '@/features/members/members-page';
 import { PaymentsPage } from '@/features/payments/payments-page';
-import { PlaceholderPage } from '@/features/placeholder-page';
+import { ReportsPage } from '@/features/reports/reports-page';
 import { isManager } from '@/lib/navigation';
 import { supabase } from '@/lib/supabase';
 import { AppShell } from './app-shell';
@@ -88,7 +88,7 @@ function SignedInApp() {
             path="reports"
             element={
               <RequireManager>
-                <PlaceholderPage title="Reports" />
+                <ReportsPage />
               </RequireManager>
             }
           />

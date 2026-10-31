@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   GARMENT_MEDIA_PURPOSES,
+  GARMENT_STAGES,
   GarmentStage,
   garmentInputSchema,
   listGarmentsSchema,
@@ -217,5 +218,20 @@ export class GarmentsService {
       await tx.garmentStageEvent.deleteMany({ where: { garmentId: id } });
       await tx.garment.delete({ where: { id } });
     });
+  }
+
+  /** For dashboards: how many garments sit at each stage, with no money involved. */
+  async countByStage(): Promise<Record<GarmentStage, number>> {
+    const rows = await this.db.garment.groupBy({
+      by: ['stage'],
+      where: { project: { is: { archivedAt: null } } },
+      _count: { _all: true },
+    });
+    const counts = Object.fromEntries(GARMENT_STAGES.map((stage) => [stage, 0])) as Record<
+      GarmentStage,
+      number
+    >;
+    for (const row of rows) counts[row.stage] = row._count._all;
+    return counts;
   }
 }

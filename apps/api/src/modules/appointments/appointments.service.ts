@@ -142,4 +142,22 @@ export class AppointmentsService {
     await this.get(id);
     return this.db.appointment.update({ where: { id }, data: { status }, include: LINKS });
   }
+
+  /** For dashboards: the next scheduled fittings. The links carry no money. */
+  upcomingFittings(take: number) {
+    return this.db.appointment.findMany({
+      where: { type: 'fitting', status: 'scheduled', startsAt: { gte: new Date() } },
+      include: LINKS,
+      orderBy: { startsAt: 'asc' },
+      take,
+    });
+  }
+
+  /** For reports. */
+  startingBetween(startsAt: { gte: Date; lt: Date }) {
+    return this.db.appointment.findMany({
+      where: { startsAt },
+      select: { status: true, startsAt: true },
+    });
+  }
 }

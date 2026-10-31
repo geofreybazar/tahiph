@@ -165,4 +165,27 @@ export class ProjectsService {
     await this.clients.get(clientId);
     return this.list({ ...query, clientId });
   }
+
+  /** For reports: the projects that count towards receivables. */
+  activeForReceivables() {
+    return this.db.weddingProject.findMany({
+      where: { status: 'active', archivedAt: null },
+      select: {
+        id: true,
+        projectNumber: true,
+        title: true,
+        priceCentavos: true,
+        client: { select: { fullName: true } },
+      },
+      orderBy: { projectNumber: 'asc' },
+    });
+  }
+
+  /** For reports: orders that became real sales, by when they were created. */
+  soldBetween(createdAt: { gte: Date; lt: Date }) {
+    return this.db.weddingProject.findMany({
+      where: { status: { in: ['active', 'completed'] }, archivedAt: null, createdAt },
+      select: { priceCentavos: true, createdAt: true },
+    });
+  }
 }
