@@ -220,3 +220,44 @@ export const listExpensesSchema = paginationQuerySchema.extend({
   to: z.iso.date().optional(),
   kind: z.enum(EXPENSE_KINDS).optional(),
 });
+
+// ---------- Appointments ----------
+
+export const APPOINTMENT_TYPES = ['consultation', 'fitting', 'pickup', 'other'] as const;
+export const APPOINTMENT_STATUSES = ['scheduled', 'completed', 'cancelled', 'no_show'] as const;
+export const APPOINTMENT_TYPE_LABELS: Record<(typeof APPOINTMENT_TYPES)[number], string> = {
+  consultation: 'Consultation',
+  fitting: 'Fitting',
+  pickup: 'Pickup',
+  other: 'Other',
+};
+export const APPOINTMENT_STATUS_LABELS: Record<(typeof APPOINTMENT_STATUSES)[number], string> = {
+  scheduled: 'Scheduled',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  no_show: 'No-show',
+};
+
+export const appointmentInputSchema = z
+  .object({
+    type: z.enum(APPOINTMENT_TYPES),
+    startsAt: z.iso.datetime({ offset: true }),
+    endsAt: z.iso.datetime({ offset: true }),
+    clientId: z.uuid().nullish(),
+    projectId: z.uuid().nullish(),
+    garmentId: z.uuid().nullish(),
+    location: optionalText(200),
+    notes: optionalText(5000),
+  })
+  .refine((value) => new Date(value.endsAt) > new Date(value.startsAt), {
+    path: ['endsAt'],
+    message: 'The end must be after the start',
+  });
+export const appointmentStatusSchema = z.object({ status: z.enum(APPOINTMENT_STATUSES) });
+export const listAppointmentsSchema = paginationQuerySchema.extend({
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+  clientId: z.uuid().optional(),
+  projectId: z.uuid().optional(),
+  garmentId: z.uuid().optional(),
+});

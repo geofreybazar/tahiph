@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PaymentList, type Payment } from '@/features/payments/payment-list';
+import { LinkedAppointments } from '@/features/appointments/linked-appointments';
 import type { Project } from '@/features/projects/projects-page';
 import { apiFetch, apiFetchPage } from '@/lib/api';
 import { useTenantAccess } from '@/lib/use-tenant-access';
@@ -66,6 +67,11 @@ export function ClientDetailPage() {
       <EditClient key={client.data.id} client={client.data} tenantId={tenantId} />
       <ClientProjects clientId={id} tenantId={tenantId} canAdd={!archived} />
       <ClientPayments clientId={id} tenantId={tenantId} />
+      <LinkedAppointments
+        tenantId={tenantId}
+        filter={{ clientId: id }}
+        schedule={{ clientId: id }}
+      />
       <Profiles clientId={id} tenantId={tenantId} canAdd={!archived} />
     </div>
   );

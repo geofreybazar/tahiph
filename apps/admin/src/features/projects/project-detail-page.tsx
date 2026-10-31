@@ -18,6 +18,7 @@ import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { LinkedAppointments } from '@/features/appointments/linked-appointments';
 import type { Garment } from '@/features/garments/production-page';
 import { apiFetch } from '@/lib/api';
 import { useTenantAccess } from '@/lib/use-tenant-access';
@@ -97,6 +98,11 @@ export function ProjectDetailPage() {
       />
       <PaymentSchedule project={data} tenantId={tenantId} manager={manager} canEdit={!archived} />
       <ProjectPayments project={data} tenantId={tenantId} manager={manager} canRecord={!archived} />
+      <LinkedAppointments
+        tenantId={tenantId}
+        filter={{ projectId: id }}
+        schedule={{ clientId: data.client.id, projectId: id }}
+      />
       <Garments projectId={id} tenantId={tenantId} canAdd={!archived} />
     </div>
   );

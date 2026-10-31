@@ -15,6 +15,7 @@ import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { LinkedAppointments } from '@/features/appointments/linked-appointments';
 import type { ProfileSummary } from '@/features/clients/client-detail-page';
 import { apiFetch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -79,6 +80,16 @@ export function GarmentDetailPage() {
       <FormError error={remove.error} />
       <EditGarment key={data.id} garment={data} tenantId={tenantId} />
       <GarmentFiles garmentId={data.id} tenantId={tenantId} />
+      <LinkedAppointments
+        tenantId={tenantId}
+        filter={{ garmentId: data.id }}
+        schedule={{
+          clientId: data.project.clientId,
+          projectId: data.project.id,
+          garmentId: data.id,
+          type: 'fitting',
+        }}
+      />
       <Stage key={`stage-${data.stage}`} garment={data} tenantId={tenantId} />
     </div>
   );
