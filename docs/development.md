@@ -161,6 +161,42 @@ Not yet run. `supabase/roles.sql` is for local use and CI only; hosted roles nee
 9. Run `npm run db:deploy`.
 10. Run the RLS audit test against the project.
 
+### First deploy
+
+Not yet run. The configuration is in the repository; these steps need the owner's accounts.
+
+**API on Render.** Create a Blueprint from `render.yaml`, and enter these when prompted:
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | `tahi_api`, over the transaction pooler |
+| `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+| `SUPABASE_JWT_ISSUER` | `https://<project-ref>.supabase.co/auth/v1` |
+| `SUPABASE_JWKS_URL` | `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json` |
+| `SUPABASE_SECRET_KEY` | The project's secret key |
+| `TRUST_PROXY_HOPS` | Confirm against Render's real setup. Too high lets clients spoof their address |
+
+Render doesn't deploy by itself (`autoDeployTrigger: off`). Copy the service's deploy hook URL for the next step.
+
+**Migrations and API releases.** Add a `production` environment to the GitHub repository with these secrets, then run the **Deploy API** workflow by hand after CI passes on `main`. It migrates, then deploys.
+
+| Secret | Value |
+|---|---|
+| `DIRECT_URL` | `tahi_migrator`, over the session pooler or a direct connection |
+| `RENDER_DEPLOY_HOOK` | The URL from Render. Anyone holding it can trigger a deploy |
+
+**Frontends on Vercel.** Create one project per app, with the root directory set to `apps/admin` or `apps/web`. Each app's `vercel.json` sets its build.
+
+| Project | Variable | Value |
+|---|---|---|
+| admin | `VITE_API_URL` | `https://api.tahi.ph/api/v1` |
+| admin | `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+| admin | `VITE_SUPABASE_PUBLISHABLE_KEY` | The publishable key only |
+| web | `API_URL` | `https://api.tahi.ph/api/v1` |
+| web | `ROOT_DOMAIN` | `tahi.ph` |
+
+Vercel deploys from Git on its own, so a frontend can go live before the **Deploy API** workflow finishes. Until that's automated, run the workflow as soon as a change that needs a new API is merged, and keep API changes backward compatible.
+
 ## Testing
 
 | Level | What | Database |

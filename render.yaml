@@ -1,0 +1,31 @@
+# The API. Secrets are entered in Render's dashboard, never here: this repository is public.
+# Migrations run first, from .github/workflows/deploy.yml, so Render doesn't deploy on its own.
+services:
+  - type: web
+    name: tahi-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    region: singapore
+    plan: starter # Paid and always on: free instances sleep.
+    autoDeployTrigger: 'off' # Quoted: bare off is a YAML boolean.
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: https://app.tahi.ph
+      - key: ADMIN_APP_URL
+        value: https://app.tahi.ph
+      - key: TRUST_PROXY_HOPS # Confirm against Render's real setup on the first deploy.
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_ISSUER
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false

@@ -197,7 +197,7 @@ Buckets (Established): `public-media`, `private-media`.
 2. **Upload:** the client sends the file directly to Storage.
 3. **Confirm:** the API checks the stored object's actual size and leading bytes, then marks it `ready` or deletes it.
 
-Only `ready` files can be attached to records. A scheduled job removes `pending` files after 24 hours, and public images have EXIF/GPS data removed, because photos taken at a client's home can carry location data.
+Only `ready` files can be attached to records. A scheduled job removes `pending` files after 24 hours. Another removes sketches, design references, payment proofs and expense receipts that are still attached to nothing after 7 days. Fitting photos are excluded until they can be attached to something. Public images have EXIF/GPS data removed, because photos taken at a client's home can carry location data.
 
 ## 7. CORS and hostnames
 
