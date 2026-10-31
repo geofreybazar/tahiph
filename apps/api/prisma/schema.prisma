@@ -94,6 +94,24 @@ enum MeasurementUnit {
   @@map("measurement_unit")
 }
 
+enum PaymentKind {
+  payment
+  refund
+
+  @@map("payment_kind")
+}
+
+enum PaymentMethod {
+  cash
+  gcash
+  maya
+  bank_transfer
+  card
+  other
+
+  @@map("payment_method")
+}
+
 // ---------- Global models ----------
 
 model Tenant {
@@ -114,6 +132,7 @@ model Tenant {
   garmentEvents        GarmentStageEvent[]
   garmentMedia         GarmentMedia[]
   paymentScheduleItems PaymentScheduleItem[]
+  payments             Payment[]
   measurementProfiles  MeasurementProfile[]
   measurementRecords   MeasurementRecord[]
   measurementValues    MeasurementValue[]
@@ -131,6 +150,8 @@ model User {
 
   memberships          TenantMembership[]
   invitationsSent      TenantInvitation[]
+  paymentsRecorded     Payment[]           @relation("PaymentRecordedBy")
+  paymentsVoided       Payment[]           @relation("PaymentVoidedBy")
   mediaUploaded        MediaFile[]
   stageChanges         GarmentStageEvent[]
   measurementsRecorded MeasurementRecord[]
@@ -220,7 +241,8 @@ model MediaFile {
   tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   uploadedBy User   @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
 
-  garmentLink GarmentMedia?
+  garmentLink   GarmentMedia?
+  paymentProofs Payment[]
 
   @@unique([tenantId, id])
   @@unique([bucket, objectKey])
@@ -279,6 +301,7 @@ model WeddingProject {
 
   garments             Garment[]
   paymentScheduleItems PaymentScheduleItem[]
+  payments             Payment[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, projectNumber])
@@ -423,10 +446,46 @@ model PaymentScheduleItem {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  project WeddingProject @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project  WeddingProject @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  payments Payment[]
 
   @@unique([tenantId, id])
   @@index([tenantId, projectId])
   @@map("payment_schedule_items")
+}
+
+/// Append-only: mistakes are voided, never edited or deleted. Balances are derived from these rows.
+model Payment {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  tenantId         String        @map("tenant_id") @db.Uuid
+  projectId        String        @map("project_id") @db.Uuid
+  scheduleItemId   String?       @map("schedule_item_id") @db.Uuid
+  kind             PaymentKind
+  amountCentavos   Int           @map("amount_centavos")
+  method           PaymentMethod
+  reference        String?
+  paidAt           DateTime      @map("paid_at") @db.Timestamptz
+  proofMediaId     String?       @map("proof_media_id") @db.Uuid
+  recordedByUserId String        @map("recorded_by_user_id") @db.Uuid
+  idempotencyKey   String        @map("idempotency_key") @db.Uuid
+  voidedAt         DateTime?     @map("voided_at") @db.Timestamptz
+  voidedByUserId   String?       @map("voided_by_user_id") @db.Uuid
+  voidReason       String?       @map("void_reason")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project      WeddingProject       @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  scheduleItem PaymentScheduleItem? @relation(fields: [tenantId, scheduleItemId], references: [tenantId, id], onDelete: Restrict)
+  proof        MediaFile?           @relation(fields: [tenantId, proofMediaId], references: [tenantId, id], onDelete: Restrict)
+  recordedBy   User                 @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  voidedBy     User?                @relation("PaymentVoidedBy", fields: [voidedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, projectId])
+  @@index([tenantId, paidAt])
+  @@index([tenantId, scheduleItemId])
+  @@index([tenantId, proofMediaId])
+  @@map("payments")
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GARMENT_MEDIA_PURPOSES, MAX_MEDIA_BYTES, MEDIA_MIME_TYPES } from '@tahi/shared';
+import { GARMENT_MEDIA_PURPOSES, MEDIA_MIME_TYPES } from '@tahi/shared';
 import { useState } from 'react';
 import { Field, selectClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { apiFetch } from '@/lib/api';
+import { uploadMedia } from '@/lib/upload';
 
 type Purpose = (typeof GARMENT_MEDIA_PURPOSES)[number];
 
@@ -60,25 +61,7 @@ export function GarmentFiles({ garmentId, tenantId }: { garmentId: string; tenan
   });
   const upload = useMutation({
     mutationFn: async (file: File) => {
-      if (!(MEDIA_MIME_TYPES as readonly string[]).includes(file.type)) {
-        throw new Error('Choose a JPEG, PNG, WebP or PDF file.');
-      }
-      if (file.size > MAX_MEDIA_BYTES) throw new Error('Choose a file of 25 MB or less.');
-      const { id, uploadUrl } = await apiFetch<{ id: string; uploadUrl: string }>(
-        '/media/upload-intents',
-        {
-          tenantId,
-          method: 'POST',
-          body: { purpose, mimeType: file.type, sizeBytes: file.size, filename: file.name },
-        },
-      );
-      const stored = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      }).catch(() => null);
-      if (!stored?.ok) throw new Error('The upload failed. Please try again.');
-      await apiFetch(`/media/${id}/confirm`, { tenantId, method: 'POST' });
+      const id = await uploadMedia(tenantId, purpose, file);
       await apiFetch(`/garments/${garmentId}/media`, {
         tenantId,
         method: 'POST',

@@ -15,6 +15,7 @@ interface ApiOptions {
   tenantId?: string;
   method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  idempotencyKey?: string;
 }
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -31,11 +32,12 @@ export async function apiFetchPage<T>(
 }
 
 async function request<T>(path: string, options: ApiOptions): Promise<ApiSuccess<T>> {
-  const { tenantId, method, body: payload } = options;
+  const { tenantId, method, body: payload, idempotencyKey } = options;
   const { data } = await supabase.auth.getSession();
   const headers: Record<string, string> = {};
   if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
   if (tenantId) headers['X-Tenant-Id'] = tenantId;
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
   if (payload !== undefined) headers['Content-Type'] = 'application/json';
 
   let response: Response;

@@ -78,8 +78,8 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 - [x] Tenant onboarding
 - [x] User and membership management
 - [x] Minimal super-admin: create, suspend, activate tenants *(Approved)*
-- [x] Client management (payment history arrives with Payment tracking)
-- [x] Wedding projects (the derived balance arrives with Payment tracking)
+- [x] Client management
+- [x] Wedding projects
 - [x] Garment management
 - [x] Order management, as a view over projects
 - [x] Production tracking
@@ -88,7 +88,7 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 ### Money
 
 - [x] Payment schedules
-- [ ] Payment tracking
+- [x] Payment tracking
 - [ ] Expenses
 
 ### Scheduling and insight

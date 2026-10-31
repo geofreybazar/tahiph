@@ -61,7 +61,12 @@ export async function createTestApp(overrides: Override[] = []) {
     method: 'get' | 'post' | 'patch' | 'put' | 'delete',
     path: string,
     user: string,
-    options: { tenant?: string; body?: object; claims?: object } = {},
+    options: {
+      tenant?: string;
+      body?: object;
+      claims?: object;
+      headers?: Record<string, string>;
+    } = {},
   ) {
     const server = request(app.getHttpServer());
     let req = server[method](`/api/v1${path}`).set(
@@ -69,6 +74,7 @@ export async function createTestApp(overrides: Override[] = []) {
       `Bearer ${await token(user, options.claims)}`,
     );
     if (options.tenant) req = req.set('X-Tenant-Id', options.tenant);
+    if (options.headers) req = req.set(options.headers);
     return options.body ? req.send(options.body) : req;
   }
 
