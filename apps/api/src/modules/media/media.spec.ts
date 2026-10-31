@@ -288,6 +288,82 @@ describe('media', () => {
   describe('abandoned upload cleanup', () => {
     const job = () => app.get(MediaCleanupJob);
 
+    describe('unattached files', () => {
+      const OLD = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      const file = (tenantId: string, uploadedByUserId: string, over: object = {}) =>
+        base.mediaFile.create({
+          data: {
+            tenantId,
+            uploadedByUserId,
+            bucket: 'private_media',
+            objectKey: `${tenantId}/payment_proof/${randomUUID()}.png`,
+            purpose: 'payment_proof',
+            mimeType: 'image/png',
+            sizeBytes: 1,
+            status: 'ready',
+            createdAt: OLD,
+            ...over,
+          } as never,
+        });
+      const exists = async (id: string) =>
+        (await base.mediaFile.findUnique({ where: { id } })) !== null;
+
+      it('removes old unattached files in every tenant, and their stored objects', async () => {
+        const [a, b] = [await member(tenantA, 'staff'), await member(tenantB, 'staff')];
+        const proof = await file(tenantA, a);
+        const receipt = await file(tenantB, b, { purpose: 'expense_receipt' });
+        const sketch = await file(tenantA, a, { purpose: 'sketch' });
+        await job().removeUnattachedFiles();
+        for (const row of [proof, receipt, sketch]) {
+          expect(await exists(row.id)).toBe(false);
+          expect(removed).toContain(row.objectKey);
+        }
+      });
+
+      it('keeps recent files, other kinds, and pending ones', async () => {
+        const a = await member(tenantA, 'staff');
+        const recent = await file(tenantA, a, { createdAt: new Date() });
+        const photo = await file(tenantA, a, { purpose: 'fitting_photo' });
+        const pending = await file(tenantA, a, { status: 'pending' });
+        await job().removeUnattachedFiles();
+        for (const row of [recent, photo, pending]) expect(await exists(row.id)).toBe(true);
+      });
+
+      it('keeps files attached to an expense, even a soft-deleted one', async () => {
+        const a = await member(tenantA, 'owner');
+        const kept = await file(tenantA, a, { purpose: 'expense_receipt' });
+        const onDeleted = await file(tenantA, a, { purpose: 'expense_receipt' });
+        const expense = (receiptMediaId: string, deletedAt: Date | null) =>
+          base.expense.create({
+            data: {
+              tenantId: tenantA,
+              kind: 'operating',
+              category: 'Rent',
+              amountCentavos: 1,
+              incurredOn: new Date('2026-01-01'),
+              receiptMediaId,
+              recordedByUserId: a,
+              deletedAt,
+            },
+          });
+        await expense(kept.id, null);
+        await expense(onDeleted.id, new Date());
+        await job().removeUnattachedFiles();
+        expect(await exists(kept.id)).toBe(true);
+        expect(await exists(onDeleted.id)).toBe(true);
+      });
+
+      it('keeps the rows when storage fails, so the next run retries', async () => {
+        const a = await member(tenantA, 'staff');
+        const proof = await file(tenantA, a);
+        storage.remove.mockRejectedValueOnce(new Error('storage down'));
+        await job().removeUnattachedFiles();
+        expect(await exists(proof.id)).toBe(true);
+        await job().removeUnattachedFiles();
+        expect(await exists(proof.id)).toBe(false);
+      });
+    });
+
     it('removes only expired pending files, in every tenant', async () => {
       const [a, b] = [await member(tenantA, 'staff'), await member(tenantB, 'staff')];
       const expiredA = await uploaded(a, tenantA);

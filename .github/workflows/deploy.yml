@@ -1,0 +1,28 @@
+# Release order from docs/architecture.md: migrate as tahi_migrator, then deploy the API.
+# Run by hand, after CI has passed on main.
+name: Deploy API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install -g npm@12.0.2
+      - run: npm ci
+      - name: Apply migrations
+        run: npm run db:deploy
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      - name: Deploy the API
+        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}

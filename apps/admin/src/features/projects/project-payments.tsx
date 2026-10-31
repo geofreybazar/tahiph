@@ -139,7 +139,6 @@ function RecordPayment({
   });
   const record = useMutation({
     mutationFn: async (amountCentavos: number) => {
-      // shortcut: a proof uploaded for a payment that's then abandoned stays in storage, sweep confirmed unattached proofs if that grows.
       let proofMediaId = proofId;
       if (proof && !proofMediaId) {
         proofMediaId = await uploadMedia(tenantId, 'payment_proof', proof);
