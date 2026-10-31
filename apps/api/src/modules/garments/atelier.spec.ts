@@ -365,6 +365,19 @@ describe('clients, projects and garments', () => {
         stored.mockRestore();
       });
 
+      it('keeps the link and the file when storage fails', async () => {
+        const garment = await newGarment(project.id);
+        const sketch = await file(tenant, owner);
+        const path = `/garments/${garment.id}/media`;
+        await as(owner, 'post', path, { mediaFileId: sketch.id });
+        const stored = vi
+          .spyOn(t.app.get(StorageService, { strict: false }), 'remove')
+          .mockRejectedValueOnce(new Error('storage down'));
+        expect((await as(owner, 'delete', `${path}/${sketch.id}`)).status).toBe(500);
+        expect((await as(owner, 'get', path)).body.data).toHaveLength(1);
+        stored.mockRestore();
+      });
+
       it('refuses unconfirmed files and other kinds of file', async () => {
         const garment = await newGarment(project.id);
         const path = `/garments/${garment.id}/media`;

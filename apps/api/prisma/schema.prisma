@@ -104,18 +104,19 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships         TenantMembership[]
-  invitations         TenantInvitation[]
-  mediaFiles          MediaFile[]
-  documentCounters    DocumentCounter[]
-  clients             Client[]
-  weddingProjects     WeddingProject[]
-  garments            Garment[]
-  garmentEvents       GarmentStageEvent[]
-  garmentMedia        GarmentMedia[]
-  measurementProfiles MeasurementProfile[]
-  measurementRecords  MeasurementRecord[]
-  measurementValues   MeasurementValue[]
+  memberships          TenantMembership[]
+  invitations          TenantInvitation[]
+  mediaFiles           MediaFile[]
+  documentCounters     DocumentCounter[]
+  clients              Client[]
+  weddingProjects      WeddingProject[]
+  garments             Garment[]
+  garmentEvents        GarmentStageEvent[]
+  garmentMedia         GarmentMedia[]
+  paymentScheduleItems PaymentScheduleItem[]
+  measurementProfiles  MeasurementProfile[]
+  measurementRecords   MeasurementRecord[]
+  measurementValues    MeasurementValue[]
 
   @@map("tenants")
 }
@@ -276,7 +277,8 @@ model WeddingProject {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   client Client @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
 
-  garments Garment[]
+  garments             Garment[]
+  paymentScheduleItems PaymentScheduleItem[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, projectNumber])
@@ -407,4 +409,24 @@ model GarmentMedia {
   @@unique([tenantId, mediaFileId])
   @@index([tenantId, garmentId])
   @@map("garment_media")
+}
+
+/// The planned payments for a project. Their total may differ from the price: prices change.
+model PaymentScheduleItem {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  label          String
+  dueDate        DateTime @map("due_date") @db.Date
+  amountCentavos Int      @map("amount_centavos")
+  sortOrder      Int      @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project WeddingProject @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, projectId])
+  @@map("payment_schedule_items")
 }

@@ -267,6 +267,16 @@ describe('media', () => {
       expect((await call('delete', `/${second.id}`, admin, tenantA)).status).toBe(204);
     });
 
+    it('deletes nothing when storage fails, so the person can retry', async () => {
+      const uploader = await member(tenantA, 'staff');
+      const file = await uploaded(uploader, tenantA);
+      storage.remove.mockRejectedValueOnce(new Error('storage down'));
+      expect((await call('delete', `/${file.id}`, uploader, tenantA)).status).toBe(500);
+      expect(await base.mediaFile.findUnique({ where: { id: file.id } })).not.toBeNull();
+      expect((await call('delete', `/${file.id}`, uploader, tenantA)).status).toBe(204);
+      expect(await base.mediaFile.findUnique({ where: { id: file.id } })).toBeNull();
+    });
+
     it('does not let other staff confirm someone else’s upload', async () => {
       const uploader = await member(tenantA, 'staff');
       const file = await uploaded(uploader, tenantA);

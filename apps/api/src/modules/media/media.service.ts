@@ -14,6 +14,8 @@ const DOWNLOAD_URL_SECONDS = 120;
 // Signed upload URLs last 2 hours, so an abandoned row must outlive that.
 const PENDING_HOURS = 24;
 
+type Transaction = Parameters<Parameters<ScopedPrisma['$transaction']>[0]>[0];
+
 const notFound = () => new ApiException(404, 'NOT_FOUND', 'File not found');
 
 @Injectable()
@@ -117,19 +119,19 @@ export class MediaService {
     }
   }
 
-  async assertCanRemove(id: string): Promise<void> {
-    const file = await this.db.mediaFile.findUnique({ where: { id } });
-    if (!file) throw notFound();
-    this.assertUploaderOrManager(file.uploadedByUserId);
-  }
-
-  async remove(id: string): Promise<void> {
+  /**
+   * Storage is called inside the transaction: if it fails, nothing is deleted and the person can
+   * retry, so no object is left with no row pointing at it. A foreign key refuses a file in use.
+   */
+  async remove(id: string, unlink?: (tx: Transaction) => Promise<unknown>): Promise<void> {
     const file = await this.db.mediaFile.findUnique({ where: { id } });
     if (!file) throw notFound();
     this.assertUploaderOrManager(file.uploadedByUserId);
 
-    // The row first: a foreign key refuses this while a record still uses the file.
-    await this.db.mediaFile.delete({ where: { id } });
-    await this.storage.remove(BUCKET, [file.objectKey]);
+    await this.db.$transaction(async (tx) => {
+      await unlink?.(tx);
+      await tx.mediaFile.delete({ where: { id } });
+      await this.storage.remove(BUCKET, [file.objectKey]);
+    });
   }
 }
