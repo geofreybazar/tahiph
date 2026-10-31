@@ -8,6 +8,7 @@ const PERMISSIONS = {
   'finance:read': ['owner', 'admin'],
   'expenses:manage': ['owner', 'admin'],
   'payments:void': ['owner', 'admin'],
+  'payments:refund': ['owner', 'admin'],
   'payments:manage-schedule': ['owner', 'admin'],
   'projects:change-price': ['owner', 'admin'],
   'records:archive': ['owner', 'admin'],

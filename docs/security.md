@@ -207,7 +207,7 @@ Public website hostnames and API request origins are different things.
 - Only `apps/admin` calls the API from a browser. Allowed origins come from `CORS_ORIGINS`: `https://app.tahi.ph` in production, `http://localhost:5173` in development.
 - Never `*`, never a `*.tahi.ph` pattern, never reflecting the request's `Origin`.
 - The API uses bearer tokens, not cookies, so `credentials` stays off.
-- Methods: `GET, POST, PATCH, DELETE, OPTIONS`. Headers: `Authorization, Content-Type, X-Tenant-Id, Idempotency-Key`.
+- Methods: `GET, POST, PATCH, PUT, DELETE, OPTIONS`. Headers: `Authorization, Content-Type, X-Tenant-Id, Idempotency-Key`.
 
 ### Portal sessions
 

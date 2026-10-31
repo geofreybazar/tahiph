@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUploadIntent, GARMENT_MEDIA_PURPOSES, MAX_MEDIA_BYTES } from '@tahi/shared';
+import { CreateUploadIntent, MAX_MEDIA_BYTES, MediaPurpose } from '@tahi/shared';
 import { can } from '../../common/auth/permissions';
 import { ApiException } from '../../common/http/api-exception';
 import type { ScopedPrisma } from '../../common/prisma/prisma-clients';
@@ -103,18 +103,18 @@ export class MediaService {
     return { url, expiresInSeconds: DOWNLOAD_URL_SECONDS };
   }
 
-  /** For garments: only a verified sketch or design reference can be attached. */
-  async assertAttachableToGarment(id: string): Promise<void> {
+  /** For other modules: only a verified file of the right kind can be attached. */
+  async assertAttachable(id: string, purposes: readonly MediaPurpose[]): Promise<void> {
     const file = await this.db.mediaFile.findUnique({ where: { id } });
     if (!file) throw notFound();
     if (file.status !== 'ready') {
       throw new ApiException(409, 'CONFLICT', 'The file has not been confirmed yet');
     }
-    if (!(GARMENT_MEDIA_PURPOSES as readonly string[]).includes(file.purpose)) {
+    if (!(purposes as readonly string[]).includes(file.purpose)) {
       throw new ApiException(
         422,
         'BUSINESS_RULE_VIOLATION',
-        'This file cannot be attached to a garment',
+        'This kind of file cannot be attached here',
       );
     }
   }

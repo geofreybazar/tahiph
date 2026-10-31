@@ -171,3 +171,32 @@ export const replacePaymentScheduleSchema = z.object({
       return new Set(ids).size === ids.length;
     }, 'Each item can appear once'),
 });
+
+// ---------- Payments ----------
+
+export const PAYMENT_KINDS = ['payment', 'refund'] as const;
+export const PAYMENT_METHODS = ['cash', 'gcash', 'maya', 'bank_transfer', 'card', 'other'] as const;
+export const PAYMENT_METHOD_LABELS: Record<(typeof PAYMENT_METHODS)[number], string> = {
+  cash: 'Cash',
+  gcash: 'GCash',
+  maya: 'Maya',
+  bank_transfer: 'Bank transfer',
+  card: 'Card',
+  other: 'Other',
+};
+
+export const recordPaymentSchema = z.object({
+  kind: z.enum(PAYMENT_KINDS),
+  amountCentavos: z.number().int().min(1).max(2_147_483_647),
+  method: z.enum(PAYMENT_METHODS),
+  reference: optionalText(120),
+  paidAt: z.iso.datetime({ offset: true }),
+  scheduleItemId: z.uuid().nullish(),
+  proofMediaId: z.uuid().nullish(),
+});
+export const idempotencyKeySchema = z.uuid();
+export const voidPaymentSchema = z.object({ reason: text(500) });
+export const listPaymentsSchema = paginationQuerySchema.extend({
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+});

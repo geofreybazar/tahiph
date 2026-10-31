@@ -199,6 +199,7 @@ Whether scheduled amounts must add up to the project price is an application war
 | paid_at | timestamptz | When the money moved |
 | proof_media_id | uuid | Nullable, → `media_files` |
 | recorded_by_user_id | uuid | → `users` |
+| idempotency_key | uuid | Unique `(tenant_id, idempotency_key)`, so a retry can't record money twice (Proposed) |
 | voided_at, voided_by_user_id, void_reason | | Nullable. `CHECK` that all three are set together |
 
 Index `(tenant_id, project_id)`, `(tenant_id, paid_at)`.

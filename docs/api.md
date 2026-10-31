@@ -144,7 +144,7 @@ The Orders screens use these endpoints, because project = order.
 |---|---|---|---|
 | GET | `/projects` | List with filters. **No tenant-wide totals** | O A S |
 | POST | `/projects` | Create, assigns project number | O A S |
-| GET | `/projects/:id` | Detail, including price and derived balance | O A S |
+| GET | `/projects/:id` | Detail, including price. The derived balance is on `GET /projects/:id/payments` | O A S |
 | PATCH | `/projects/:id` | Update details, excluding price | O A S |
 | PATCH | `/projects/:id/price` | Change price; audited | O A |
 | POST | `/projects/:id/status` | Change status | O A S |
@@ -193,10 +193,11 @@ The Orders screens use these endpoints, because project = order.
 |---|---|---|---|
 | GET | `/projects/:id/payment-schedule` | Schedule | O A S |
 | PUT | `/projects/:id/payment-schedule` | Replace schedule. Items sent with an `id` are kept. The response reports any difference from the price, as a warning | O A |
-| GET | `/projects/:id/payments` | One project's payments | O A S |
-| POST | `/projects/:id/payments` | Record a payment or refund | O A S (refunds O A) |
+| GET | `/projects/:id/payments` | One project's payments, with paid, refunded and derived balance | O A S |
+| GET | `/clients/:id/payments` | One client's payment history (Proposed) | O A S |
+| POST | `/projects/:id/payments` | Record a payment or refund. `Idempotency-Key` is required; a retry returns the first result, and the key used for a different payment is a 409 | O A S (refunds O A) |
 | POST | `/payments/:id/void` | Void, with reason; audited | O A |
-| GET | `/payments` | **Tenant-wide** list | O A |
+| GET | `/payments` | **Tenant-wide** list, filter by Manila days with `from` and `to` | O A |
 
 ## Expenses
 

@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { GarmentStage, garmentInputSchema, listGarmentsSchema } from '@tahi/shared';
+import {
+  GARMENT_MEDIA_PURPOSES,
+  GarmentStage,
+  garmentInputSchema,
+  listGarmentsSchema,
+} from '@tahi/shared';
 import { z } from 'zod';
 import { fromDbDate, toDbDate } from '../../common/http/dates';
 import { ApiException } from '../../common/http/api-exception';
@@ -173,7 +178,7 @@ export class GarmentsService {
 
   async attachMedia(id: string, mediaFileId: string) {
     await this.find(id);
-    await this.media.assertAttachableToGarment(mediaFileId);
+    await this.media.assertAttachable(mediaFileId, GARMENT_MEDIA_PURPOSES);
     await this.db.garmentMedia.create({ data: { garmentId: id, mediaFileId } as never });
     return this.listMedia(id);
   }

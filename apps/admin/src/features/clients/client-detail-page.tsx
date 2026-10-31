@@ -15,6 +15,7 @@ import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PaymentList, type Payment } from '@/features/payments/payment-list';
 import type { Project } from '@/features/projects/projects-page';
 import { apiFetch, apiFetchPage } from '@/lib/api';
 import { useTenantAccess } from '@/lib/use-tenant-access';
@@ -64,6 +65,7 @@ export function ClientDetailPage() {
       <FormError error={archive.error} />
       <EditClient key={client.data.id} client={client.data} tenantId={tenantId} />
       <ClientProjects clientId={id} tenantId={tenantId} canAdd={!archived} />
+      <ClientPayments clientId={id} tenantId={tenantId} />
       <Profiles clientId={id} tenantId={tenantId} canAdd={!archived} />
     </div>
   );
@@ -303,6 +305,25 @@ function Profiles({
           </form>
         )}
         <FormError error={create.error} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientPayments({ clientId, tenantId }: { clientId: string; tenantId: string }) {
+  const payments = useQuery({
+    queryKey: ['projects', tenantId, 'client-payments', clientId],
+    queryFn: () => apiFetch<Payment[]>(`/clients/${clientId}/payments`, { tenantId }),
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Payment history</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {payments.isPending && <p>Loading…</p>}
+        <FormError error={payments.error} />
+        {payments.data && <PaymentList payments={payments.data} tenantId={tenantId} showProject />}
       </CardContent>
     </Card>
   );
