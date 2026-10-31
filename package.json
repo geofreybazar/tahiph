@@ -1,0 +1,38 @@
+{
+  "name": "tahiph",
+  "private": true,
+  "packageManager": "npm@12.0.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "npm run db:migrate -w @tahi/api",
+    "db:deploy": "npm run db:deploy -w @tahi/api",
+    "db:seed": "npm run db:seed -w @tahi/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.0.0",
+    "supabase": "2.122.0",
+    "turbo": "^2.11.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
+  },
+  "allowScripts": {
+    "supabase@2.122.0": true,
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
+  }
+}

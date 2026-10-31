@@ -14,7 +14,7 @@ Tables are in `docs/schema.md`. Security rules are in `docs/security.md`. Snippe
 
 Migrate doesn't work through transaction-mode pooling. Pooler usernames take the form `role.project-ref`.
 
-*Verify in Phase 0:* Supabase documents `?pgbouncer=true` for disabling prepared statements under transaction mode, but that guidance may not apply unchanged to `adapter-pg`. Test it before relying on either setting.
+Tested on 2026-10-31 through local Supavisor in transaction mode: `adapter-pg` needs no `?pgbouncer=true`, including under concurrent queries and interactive transactions. Local pooler usernames take the form `tahi_api.pooler-dev`.
 
 ## Naming
 
@@ -58,8 +58,8 @@ Rules:
 
 - Target models declare `@@unique([tenantId, id])`.
 - `onDelete: Restrict` on every relation. Never `SetNull` on a composite relation.
-- Optional relations (`scheduleItemId`) combine a required `tenantId` with a nullable foreign key. Postgres skips the check when any part is null, which is the intended behaviour. *Verify in Phase 0* that Prisma 7.10.1 accepts this schema shape and that a mismatched tenant fails.
-- Pass composite keys in nested `connect`, for example `{ tenantId_id: { tenantId, id } }`, only on allowlisted paths.
+- Optional relations (`scheduleItemId`) combine a required `tenantId` with a nullable foreign key. Postgres skips the check when any part is null, which is the intended behaviour. Prisma 7.10.1 accepts this shape. Test that a mismatched tenant fails when the first such table is added in Phase 1.
+- Set relations with the scalar field (`clientId`). The scoped client refuses nested `connect`.
 
 ## Indexing
 
@@ -93,7 +93,7 @@ These go in migration SQL through `prisma migrate dev --create-only`:
 
 - Integer centavos in `Int` columns, suffixed `_centavos`, in the database and API. ₱1,500.50 is `150050`.
 - No floats anywhere in calculating money. Convert to pesos only for display.
-- `Int` allows about ₱21.4M per value, which is enough for a single amount here. **Report totals can exceed it**, so sums must use `bigint` in SQL and be checked at the boundary. *Verify in Phase 0* how Prisma returns these sums.
+- `Int` allows about ₱21.4M per value, which is enough for a single amount here. **Report totals can exceed it**, so sums must use `bigint` in SQL and be checked at the boundary. Check how Prisma returns these sums when reports are built in Phase 1.
 - Amounts are positive, and direction comes from `kind`.
 - Balances are always derived from payments.
 - Percentages (such as a deposit rate) are integer basis points, if ever needed.

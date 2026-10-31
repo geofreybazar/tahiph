@@ -1,0 +1,6 @@
+dist
+.next
+.turbo
+package-lock.json
+apps/api/src/generated
+*.md

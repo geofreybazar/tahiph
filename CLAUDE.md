@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for wedding fashion designers in the Philippines: a private atelier dashboard, a public website per designer, a client portal, and a super-admin panel.
 
-**Status: docs approved by the owner on 2026-10-31. Nothing is scaffolded yet.**
+**Status: Phase 0 complete locally; nothing is deployed. See `docs/roadmap.md`.**
 
 Repository: <https://github.com/geofreybazar/tahiph.git> (**public**; never commit secrets, real project references or customer data).
 
@@ -62,7 +62,7 @@ Don't replace a technology without the owner's approval. Version pins are in `do
 3. Feature modules use only the scoped Prisma client. The identity client is only for `common/auth`; the platform client is only for `modules/platform`.
 4. A new tenant model must be added to the registry, enable RLS in its migration, and have a cross-tenant test.
 5. No raw SQL without an explicit `tenant_id` filter and a security review flag.
-6. No nested writes to tenant models unless the path is allowlisted.
+6. No nested writes through the scoped client. Write each model in its own call, in a transaction.
 7. Another tenant's record returns 404.
 8. **RLS doesn't protect against API bugs**, because the API role bypasses it. Don't reason as though it does. See `docs/security.md` §4.
 
@@ -98,7 +98,7 @@ Don't replace a technology without the owner's approval. Version pins are in `do
 
 REST under `/api/v1`, with `{ success, data, meta?, timestamp }` and `{ success, statusCode, error: { code, message, details }, timestamp, path }`. Full details are in `docs/api.md`.
 
-## Commands (planned; not yet configured)
+## Commands
 
 ```bash
 npm install
@@ -107,6 +107,7 @@ npm run build
 npm run lint
 npm run test
 npm run typecheck
+
 npm run db:generate
 npm run db:migrate   # local only
 npm run db:deploy    # CI/deploy

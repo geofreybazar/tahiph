@@ -49,6 +49,7 @@ Error:
 | 201 | | Created |
 | 204 | | Success with no body; the envelope is omitted |
 | 400 | `VALIDATION_ERROR` | Invalid input. `details` is `[{ "path": "email", "message": "..." }]` |
+| 400 | `BAD_REQUEST` | Unreadable request, such as malformed JSON |
 | 400 | `TENANT_REQUIRED` | `X-Tenant-Id` missing |
 | 401 | `UNAUTHENTICATED` | Token missing, invalid or expired |
 | 403 | `FORBIDDEN` | Role not allowed |
@@ -245,7 +246,7 @@ A file's access follows its parent. For example, an expense receipt is owner/adm
 
 | Method | Path | Purpose | Access |
 |---|---|---|---|
-| GET | `/public/sites/resolve?host=` | Resolve a hostname to a public tenant profile | Public |
+| GET | `/public/sites/:slug` | Public tenant profile, for the slug `apps/web` derived from the hostname. Built in Phase 0 | Public |
 | GET | `/public/sites/:slug/portfolio`, `/collections`, `/packages` | Public content | Public |
 | POST | `/public/sites/:slug/inquiries` | Inquiry form; rate limited | Public |
 | POST | `/public/sites/:slug/consultations` | Consultation request; rate limited | Public |
