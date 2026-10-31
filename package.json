@@ -14,6 +14,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e": "npm run test:e2e -w @tahi/admin",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "db:generate": "turbo run db:generate",
