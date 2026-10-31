@@ -223,6 +223,8 @@ Owner and admin only.
 | GET | `/reports/receivables` | Outstanding balances | O A |
 | GET | `/reports/operations` | Production and appointment counts | O A |
 
+Reports take `from` and `to` as `YYYY-MM` Manila months, at most 36 apart, defaulting to the last 12. Definitions are in `docs/schema.md`.
+
 ## Media
 
 | Method | Path | Purpose | Access |

@@ -250,4 +250,20 @@ export class PaymentsService {
     });
     return this.db.payment.findUniqueOrThrow({ ...DETAIL, where: { id } });
   }
+
+  /** For reports: every counted movement in a range of moments. */
+  countedBetween(paidAt: { gte: Date; lt: Date }) {
+    return this.db.payment.findMany({
+      where: { voidedAt: null, paidAt },
+      select: { kind: true, amountCentavos: true, paidAt: true },
+    });
+  }
+
+  /** For reports: every counted movement on these projects. */
+  countedForProjects(projectIds: string[]) {
+    return this.db.payment.findMany({
+      where: { voidedAt: null, projectId: { in: projectIds } },
+      select: { projectId: true, kind: true, amountCentavos: true, voidedAt: true },
+    });
+  }
 }

@@ -8,5 +8,6 @@ import { ExpensesService } from './expenses.service';
   imports: [ProjectsModule, MediaModule],
   controllers: [ExpensesController],
   providers: [ExpensesService],
+  exports: [ExpensesService],
 })
 export class ExpensesModule {}

@@ -20,6 +20,7 @@ import { MeasurementsModule } from './modules/measurements/measurements.module';
 import { MeModule } from './modules/me/me.module';
 import { MembersModule } from './modules/members/members.module';
 import { PlatformModule } from './modules/platform/platform.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { PublicSitesModule } from './modules/public-sites/public-sites.module';
 
 @Module({
@@ -40,6 +41,7 @@ import { PublicSitesModule } from './modules/public-sites/public-sites.module';
     PaymentsModule,
     ExpensesModule,
     AppointmentsModule,
+    ReportsModule,
     PlatformModule,
     PublicSitesModule,
   ],

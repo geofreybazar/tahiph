@@ -94,8 +94,8 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 ### Scheduling and insight
 
 - [x] Appointments and fittings
-- [ ] Business dashboard
-- [ ] Basic reports
+- [x] Business dashboard
+- [x] Basic reports
 
 ### Before the first real tenant *(Approved)*
 

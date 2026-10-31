@@ -261,3 +261,11 @@ export const listAppointmentsSchema = paginationQuerySchema.extend({
   projectId: z.uuid().optional(),
   garmentId: z.uuid().optional(),
 });
+
+// ---------- Reports ----------
+
+const reportMonth = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+export const reportPeriodSchema = z.object({
+  from: reportMonth.optional(),
+  to: reportMonth.optional(),
+});

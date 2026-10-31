@@ -277,6 +277,7 @@ MVP definitions, approved by the owner on 2026-10-31:
 | Revenue | Non-voided payments minus non-voided refunds, by `paid_at` |
 | Expenses | Non-deleted expenses, by `incurred_on` |
 | Profit | Revenue − expenses. **Cash basis**; a deposit counts when received, even if the garment is unfinished |
-| Receivables | Σ balance of `active` projects |
+| Receivables | Σ balance of `active` projects, leaving out archived ones. An overpaid project counts as a negative balance |
+| Sales | *(Proposed)* Count and Σ price of `active` and `completed` projects, leaving out archived ones, by `created_at`. Uses each project's current price and status |
 
 Months are Asia/Manila calendar months. These reports aren't accounting or tax records.

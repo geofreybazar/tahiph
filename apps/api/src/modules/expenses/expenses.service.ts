@@ -112,4 +112,12 @@ export class ExpensesService {
     await this.find(id);
     await this.db.expense.update({ where: { id }, data: { deletedAt: new Date() } });
   }
+
+  /** For reports: non-deleted expenses from one calendar day to another, inclusive. */
+  countedBetween(from: string, to: string) {
+    return this.db.expense.findMany({
+      where: { deletedAt: null, incurredOn: { gte: toDbDate(from)!, lte: toDbDate(to)! } },
+      select: { amountCentavos: true, incurredOn: true },
+    });
+  }
 }
