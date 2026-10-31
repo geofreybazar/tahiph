@@ -85,6 +85,9 @@ export const listGarmentsSchema = paginationQuerySchema.extend({
   stage: garmentStageSchema.optional(),
 });
 
+export const GARMENT_MEDIA_PURPOSES = ['sketch', 'design_reference'] as const;
+export const attachGarmentMediaSchema = z.object({ mediaFileId: z.uuid() });
+
 export const GARMENT_STAGE_LABELS: Record<(typeof GARMENT_STAGES)[number], string> = {
   design: 'Design',
   fabric_sourcing: 'Fabric Sourcing',

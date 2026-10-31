@@ -47,6 +47,9 @@ function describe(exception: unknown): Described {
   if (prismaCode === 'P2002') {
     return { status: 409, code: 'CONFLICT', message: 'This already exists', details: [] };
   }
+  if (prismaCode === 'P2003') {
+    return { status: 409, code: 'CONFLICT', message: 'This is still in use', details: [] };
+  }
   // Body-parser failures (malformed JSON, oversized body) carry a status but aren't HttpExceptions.
   const status =
     exception instanceof HttpException

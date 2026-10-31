@@ -19,6 +19,7 @@ import type { ProfileSummary } from '@/features/clients/client-detail-page';
 import { apiFetch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useTenantAccess } from '@/lib/use-tenant-access';
+import { GarmentFiles } from './garment-files';
 import type { Garment, GarmentStage } from './production-page';
 
 interface StageEvent {
@@ -77,6 +78,7 @@ export function GarmentDetailPage() {
       </div>
       <FormError error={remove.error} />
       <EditGarment key={data.id} garment={data} tenantId={tenantId} />
+      <GarmentFiles garmentId={data.id} tenantId={tenantId} />
       <Stage key={`stage-${data.stage}`} garment={data} tenantId={tenantId} />
     </div>
   );

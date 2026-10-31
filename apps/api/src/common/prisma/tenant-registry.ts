@@ -11,6 +11,7 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'MeasurementProfile',
   'MeasurementRecord',
   'MeasurementValue',
+  'GarmentMedia',
 ]);
 
 /** The scoped client exposes only the current tenant's own row of this model. */

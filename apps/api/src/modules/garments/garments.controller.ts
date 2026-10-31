@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { garmentInputSchema, listGarmentsSchema, moveGarmentStageSchema } from '@tahi/shared';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  attachGarmentMediaSchema,
+  garmentInputSchema,
+  listGarmentsSchema,
+  moveGarmentStageSchema,
+} from '@tahi/shared';
 import { createZodDto } from 'nestjs-zod';
 import { TenantRoute } from '../../common/auth/decorators';
 import { GarmentsService } from './garments.service';
@@ -7,6 +23,7 @@ import { GarmentsService } from './garments.service';
 class GarmentInputDto extends createZodDto(garmentInputSchema) {}
 class MoveStageDto extends createZodDto(moveGarmentStageSchema) {}
 class ListGarmentsDto extends createZodDto(listGarmentsSchema) {}
+class AttachMediaDto extends createZodDto(attachGarmentMediaSchema) {}
 
 @Controller()
 @TenantRoute()
@@ -47,6 +64,25 @@ export class GarmentsController {
   @Get('garments/:id/stage-events')
   history(@Param('id', ParseUUIDPipe) id: string) {
     return this.garments.history(id);
+  }
+
+  @Get('garments/:id/media')
+  listMedia(@Param('id', ParseUUIDPipe) id: string) {
+    return this.garments.listMedia(id);
+  }
+
+  @Post('garments/:id/media')
+  attachMedia(@Param('id', ParseUUIDPipe) id: string, @Body() body: AttachMediaDto) {
+    return this.garments.attachMedia(id, body.mediaFileId);
+  }
+
+  @Delete('garments/:id/media/:mediaFileId')
+  @HttpCode(204)
+  removeMedia(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('mediaFileId', ParseUUIDPipe) mediaFileId: string,
+  ) {
+    return this.garments.removeMedia(id, mediaFileId);
   }
 
   @TenantRoute('garments:delete')

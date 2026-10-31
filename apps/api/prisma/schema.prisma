@@ -112,6 +112,7 @@ model Tenant {
   weddingProjects     WeddingProject[]
   garments            Garment[]
   garmentEvents       GarmentStageEvent[]
+  garmentMedia        GarmentMedia[]
   measurementProfiles MeasurementProfile[]
   measurementRecords  MeasurementRecord[]
   measurementValues   MeasurementValue[]
@@ -218,6 +219,8 @@ model MediaFile {
   tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   uploadedBy User   @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
 
+  garmentLink GarmentMedia?
+
   @@unique([tenantId, id])
   @@unique([bucket, objectKey])
   @@index([tenantId, status])
@@ -300,6 +303,7 @@ model Garment {
   tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   project           WeddingProject      @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
   events            GarmentStageEvent[]
+  media             GarmentMedia[]
   measurementRecord MeasurementRecord?  @relation(fields: [tenantId, measurementRecordId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
@@ -385,4 +389,22 @@ model MeasurementValue {
   @@unique([tenantId, id])
   @@unique([tenantId, recordId, key])
   @@map("measurement_values")
+}
+
+/// A file belongs to one garment, so removing it from the garment can delete the file.
+model GarmentMedia {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  garmentId   String   @map("garment_id") @db.Uuid
+  mediaFileId String   @map("media_file_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  garment   Garment   @relation(fields: [tenantId, garmentId], references: [tenantId, id], onDelete: Restrict)
+  mediaFile MediaFile @relation(fields: [tenantId, mediaFileId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, mediaFileId])
+  @@index([tenantId, garmentId])
+  @@map("garment_media")
 }

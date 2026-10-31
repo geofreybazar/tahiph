@@ -80,7 +80,7 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 - [x] Minimal super-admin: create, suspend, activate tenants *(Approved)*
 - [x] Client management (payment history arrives with Payment tracking)
 - [x] Wedding projects (the derived balance arrives with Payment tracking)
-- [ ] Garment management: done except sketches and design references (`garment_media`)
+- [x] Garment management
 - [x] Order management, as a view over projects
 - [x] Production tracking
 - [x] Measurement profiles and history

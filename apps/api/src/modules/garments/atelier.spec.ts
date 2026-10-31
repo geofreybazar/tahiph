@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestApp, TestApp } from '../../../test/harness';
+import { StorageService } from '../../common/storage/storage.service';
 
 describe('clients, projects and garments', () => {
   let t: TestApp;
@@ -10,14 +11,23 @@ describe('clients, projects and garments', () => {
   let staff: string;
   let outsider: string;
 
-  const as = (user: string, method: 'get' | 'post' | 'patch' | 'delete', path: string, body?: object) =>
-    t.as(method, path, user, { tenant: user === outsider ? other : tenant, body });
+  const as = (
+    user: string,
+    method: 'get' | 'post' | 'patch' | 'delete',
+    path: string,
+    body?: object,
+  ) => t.as(method, path, user, { tenant: user === outsider ? other : tenant, body });
 
   const newClient = async (fullName = 'Alma Santos', user = owner) =>
     (await as(user, 'post', '/clients', { fullName })).body.data;
   const newProject = async (clientId: string, user = owner) =>
-    (await as(user, 'post', '/projects', { clientId, title: 'Santos wedding', priceCentavos: 15000050 }))
-      .body.data;
+    (
+      await as(user, 'post', '/projects', {
+        clientId,
+        title: 'Santos wedding',
+        priceCentavos: 15000050,
+      })
+    ).body.data;
   const garmentBody = { name: 'Gown', wearerName: 'Alma', wearerRole: 'bride' };
   const newGarment = async (projectId: string) =>
     (await as(owner, 'post', `/projects/${projectId}/garments`, garmentBody)).body.data;
@@ -50,9 +60,12 @@ describe('clients, projects and garments', () => {
       });
     });
 
-    it.each([{ fullName: '' }, { fullName: 'x', email: 'nope' }, {}])('refuses %j', async (body) => {
-      expect((await as(owner, 'post', '/clients', body)).status).toBe(400);
-    });
+    it.each([{ fullName: '' }, { fullName: 'x', email: 'nope' }, {}])(
+      'refuses %j',
+      async (body) => {
+        expect((await as(owner, 'post', '/clients', body)).status).toBe(400);
+      },
+    );
 
     it('ignores a tenantId in the body', async () => {
       const res = await as(owner, 'post', '/clients', { fullName: 'x', tenantId: other });
@@ -105,7 +118,10 @@ describe('clients, projects and garments', () => {
       const client = await newClient();
       const first = await newProject(client.id);
       const second = await newProject(client.id);
-      const year = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric' }).format();
+      const year = new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+      }).format();
       expect(first.projectNumber).toBe(`P-${year}-0001`);
       expect(second.projectNumber).toBe(`P-${year}-0002`);
 
@@ -159,7 +175,11 @@ describe('clients, projects and garments', () => {
 
     it.each([-1, 1.5, 2147483648, '100'])('refuses the price %j', async (priceCentavos) => {
       const client = await newClient();
-      const res = await as(owner, 'post', '/projects', { clientId: client.id, title: 't', priceCentavos });
+      const res = await as(owner, 'post', '/projects', {
+        clientId: client.id,
+        title: 't',
+        priceCentavos,
+      });
       expect(res.status).toBe(400);
     });
 
@@ -170,7 +190,9 @@ describe('clients, projects and garments', () => {
 
       const path = `/projects/${project.id}/price`;
       expect((await as(staff, 'patch', path, { priceCentavos: 1 })).status).toBe(403);
-      expect((await as(owner, 'patch', path, { priceCentavos: 2 })).body.data.priceCentavos).toBe(2);
+      expect((await as(owner, 'patch', path, { priceCentavos: 2 })).body.data.priceCentavos).toBe(
+        2,
+      );
 
       const log = await t.base.auditLog.findFirst({
         where: { tenantId: tenant, action: 'project.price_changed', entityId: project.id },
@@ -204,7 +226,9 @@ describe('clients, projects and garments', () => {
       expect((await as(outsider, 'get', path)).status).toBe(404);
       expect((await as(outsider, 'patch', path, { title: 'x' })).status).toBe(404);
       expect((await as(outsider, 'patch', `${path}/price`, { priceCentavos: 1 })).status).toBe(404);
-      expect((await as(outsider, 'post', `${path}/status`, { status: 'cancelled' })).status).toBe(404);
+      expect((await as(outsider, 'post', `${path}/status`, { status: 'cancelled' })).status).toBe(
+        404,
+      );
       expect((await as(owner, 'get', path)).body.data.status).toBe('draft');
     });
   });
@@ -292,7 +316,9 @@ describe('clients, projects and garments', () => {
     it('returns 404 across tenants, changing nothing', async () => {
       const garment = await newGarment(project.id);
       const path = `/garments/${garment.id}`;
-      expect((await as(outsider, 'post', `/projects/${project.id}/garments`, garmentBody)).status).toBe(404);
+      expect(
+        (await as(outsider, 'post', `/projects/${project.id}/garments`, garmentBody)).status,
+      ).toBe(404);
       expect((await as(outsider, 'get', path)).status).toBe(404);
       expect((await as(outsider, 'patch', path, garmentBody)).status).toBe(404);
       expect((await as(outsider, 'post', `${path}/stage`, { stage: 'ready' })).status).toBe(404);
@@ -300,6 +326,88 @@ describe('clients, projects and garments', () => {
       expect((await as(outsider, 'delete', path)).status).toBe(404);
       expect((await as(outsider, 'get', '/garments')).body.data).toEqual([]);
       expect((await as(owner, 'get', path)).body.data.stage).toBe('design');
+    });
+
+    describe('sketches and references', () => {
+      const file = (tenantId: string, uploadedByUserId: string, over: object = {}) =>
+        t.base.mediaFile.create({
+          data: {
+            tenantId,
+            uploadedByUserId,
+            bucket: 'private_media',
+            objectKey: `${tenantId}/sketch/${randomUUID()}.png`,
+            purpose: 'sketch',
+            mimeType: 'image/png',
+            sizeBytes: 1,
+            status: 'ready',
+            ...over,
+          } as never,
+        });
+
+      it('attaches and lists; a removed one takes its file with it', async () => {
+        const garment = await newGarment(project.id);
+        const sketch = await file(tenant, staff);
+        const path = `/garments/${garment.id}/media`;
+        const stored = vi
+          .spyOn(t.app.get(StorageService, { strict: false }), 'remove')
+          .mockResolvedValue();
+        const made = await as(staff, 'post', path, { mediaFileId: sketch.id });
+        expect(made.status).toBe(201);
+        expect(made.body.data).toEqual([
+          { id: sketch.id, purpose: 'sketch', mimeType: 'image/png', originalFilename: null },
+        ]);
+        expect((await as(owner, 'post', path, { mediaFileId: sketch.id })).status).toBe(409);
+
+        expect((await as(staff, 'delete', `${path}/${sketch.id}`)).status).toBe(204);
+        expect((await as(owner, 'get', path)).body.data).toEqual([]);
+        expect(await t.base.mediaFile.findUnique({ where: { id: sketch.id } })).toBeNull();
+        expect(stored).toHaveBeenCalledWith('private-media', [sketch.objectKey]);
+        stored.mockRestore();
+      });
+
+      it('refuses unconfirmed files and other kinds of file', async () => {
+        const garment = await newGarment(project.id);
+        const path = `/garments/${garment.id}/media`;
+        const pending = await file(tenant, owner, { status: 'pending' });
+        expect((await as(owner, 'post', path, { mediaFileId: pending.id })).status).toBe(409);
+        const receipt = await file(tenant, owner, { purpose: 'expense_receipt' });
+        expect((await as(owner, 'post', path, { mediaFileId: receipt.id })).status).toBe(422);
+        expect((await as(owner, 'post', path, { mediaFileId: randomUUID() })).status).toBe(404);
+      });
+
+      it('lets only the uploader or a manager remove one', async () => {
+        const garment = await newGarment(project.id);
+        const sketch = await file(tenant, owner);
+        const path = `/garments/${garment.id}/media`;
+        await as(owner, 'post', path, { mediaFileId: sketch.id });
+        expect((await as(staff, 'delete', `${path}/${sketch.id}`)).status).toBe(403);
+        expect((await as(owner, 'get', path)).body.data).toHaveLength(1);
+      });
+
+      it('protects an attached file and its garment from deletion', async () => {
+        const garment = await newGarment(project.id);
+        const sketch = await file(tenant, owner);
+        await as(owner, 'post', `/garments/${garment.id}/media`, { mediaFileId: sketch.id });
+        expect((await as(owner, 'delete', `/media/${sketch.id}`)).status).toBe(409);
+        expect((await as(owner, 'delete', `/garments/${garment.id}`)).status).toBe(422);
+      });
+
+      it('returns 404 across tenants, and the database refuses a mixed link', async () => {
+        const garment = await newGarment(project.id);
+        const path = `/garments/${garment.id}/media`;
+        const sketch = await file(tenant, owner);
+        await as(owner, 'post', path, { mediaFileId: sketch.id });
+        const theirs = await file(other, outsider);
+        expect((await as(owner, 'post', path, { mediaFileId: theirs.id })).status).toBe(404);
+        expect((await as(outsider, 'get', path)).status).toBe(404);
+        expect((await as(outsider, 'post', path, { mediaFileId: theirs.id })).status).toBe(404);
+        expect((await as(outsider, 'delete', `${path}/${sketch.id}`)).status).toBe(404);
+        await expect(
+          t.base.garmentMedia.create({
+            data: { tenantId: tenant, garmentId: garment.id, mediaFileId: theirs.id },
+          }),
+        ).rejects.toThrow();
+      });
     });
 
     it('returns 400 for a malformed id, not a 500', async () => {

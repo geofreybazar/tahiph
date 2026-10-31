@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUploadIntent, MAX_MEDIA_BYTES } from '@tahi/shared';
+import { CreateUploadIntent, GARMENT_MEDIA_PURPOSES, MAX_MEDIA_BYTES } from '@tahi/shared';
 import { can } from '../../common/auth/permissions';
 import { ApiException } from '../../common/http/api-exception';
 import type { ScopedPrisma } from '../../common/prisma/prisma-clients';
@@ -99,6 +99,28 @@ export class MediaService {
       file.originalFilename ?? undefined,
     );
     return { url, expiresInSeconds: DOWNLOAD_URL_SECONDS };
+  }
+
+  /** For garments: only a verified sketch or design reference can be attached. */
+  async assertAttachableToGarment(id: string): Promise<void> {
+    const file = await this.db.mediaFile.findUnique({ where: { id } });
+    if (!file) throw notFound();
+    if (file.status !== 'ready') {
+      throw new ApiException(409, 'CONFLICT', 'The file has not been confirmed yet');
+    }
+    if (!(GARMENT_MEDIA_PURPOSES as readonly string[]).includes(file.purpose)) {
+      throw new ApiException(
+        422,
+        'BUSINESS_RULE_VIOLATION',
+        'This file cannot be attached to a garment',
+      );
+    }
+  }
+
+  async assertCanRemove(id: string): Promise<void> {
+    const file = await this.db.mediaFile.findUnique({ where: { id } });
+    if (!file) throw notFound();
+    this.assertUploaderOrManager(file.uploadedByUserId);
   }
 
   async remove(id: string): Promise<void> {

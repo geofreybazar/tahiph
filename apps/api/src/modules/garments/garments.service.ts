@@ -7,6 +7,7 @@ import { Paginated } from '../../common/http/paginated';
 import type { ScopedPrisma } from '../../common/prisma/prisma-clients';
 import { SCOPED_PRISMA } from '../../common/prisma/scoped-prisma.token';
 import { RequestContext } from '../../common/request-context/request-context';
+import { MediaService } from '../media/media.service';
 import { MeasurementsService } from '../measurements/measurements.service';
 import { ProjectsService } from '../projects/projects.service';
 
@@ -36,6 +37,7 @@ export class GarmentsService {
     @Inject(SCOPED_PRISMA) private readonly db: ScopedPrisma,
     private readonly projects: ProjectsService,
     private readonly measurements: MeasurementsService,
+    private readonly media: MediaService,
     private readonly context: RequestContext,
   ) {}
 
@@ -157,6 +159,34 @@ export class GarmentsService {
     });
   }
 
+  async listMedia(id: string) {
+    await this.find(id);
+    const links = await this.db.garmentMedia.findMany({
+      where: { garmentId: id },
+      select: {
+        mediaFile: { select: { id: true, purpose: true, mimeType: true, originalFilename: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return links.map((link) => link.mediaFile);
+  }
+
+  async attachMedia(id: string, mediaFileId: string) {
+    await this.find(id);
+    await this.media.assertAttachableToGarment(mediaFileId);
+    await this.db.garmentMedia.create({ data: { garmentId: id, mediaFileId } as never });
+    return this.listMedia(id);
+  }
+
+  /** The file exists only for this garment, so it goes too. */
+  async removeMedia(id: string, mediaFileId: string): Promise<void> {
+    const link = await this.db.garmentMedia.findFirst({ where: { garmentId: id, mediaFileId } });
+    if (!link) throw new ApiException(404, 'NOT_FOUND', 'File not found');
+    await this.media.assertCanRemove(mediaFileId);
+    await this.db.garmentMedia.delete({ where: { id: link.id } });
+    await this.media.remove(mediaFileId);
+  }
+
   /** Refused once work has started, so production history can't disappear. */
   async remove(id: string): Promise<void> {
     await this.db.$transaction(async (tx) => {
@@ -170,6 +200,13 @@ export class GarmentsService {
           422,
           'BUSINESS_RULE_VIOLATION',
           'This garment has production history and cannot be removed',
+        );
+      }
+      if ((await tx.garmentMedia.count({ where: { garmentId: id } })) > 0) {
+        throw new ApiException(
+          422,
+          'BUSINESS_RULE_VIOLATION',
+          "Remove this garment's sketches and references first",
         );
       }
       await tx.garmentStageEvent.deleteMany({ where: { garmentId: id } });
