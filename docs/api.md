@@ -208,7 +208,7 @@ Owner and admin only.
 | GET | `/expenses` | List, by date range and kind | O A |
 | POST | `/expenses` | Create | O A |
 | GET | `/expenses/:id` | Detail | O A |
-| PATCH | `/expenses/:id` | Update | O A |
+| PATCH | `/expenses/:id` | Update. Replacing or clearing `receiptMediaId` deletes the old file; leaving it out keeps it | O A |
 | DELETE | `/expenses/:id` | Soft delete | O A |
 
 ## Dashboard and reports

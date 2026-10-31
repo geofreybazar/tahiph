@@ -216,7 +216,7 @@ Index `(tenant_id, project_id)`, `(tenant_id, paid_at)`.
 | amount_centavos | int | `CHECK > 0` |
 | incurred_on | date | |
 | project_id | uuid | Nullable, → `wedding_projects` |
-| receipt_media_id | uuid | Nullable, → `media_files` |
+| receipt_media_id | uuid | Nullable, → `media_files`. Unique per tenant: replacing or removing a receipt deletes its file |
 | recorded_by_user_id | uuid | → `users` |
 | deleted_at | timestamptz | Nullable; soft delete |
 

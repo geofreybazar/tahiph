@@ -24,7 +24,15 @@ export interface Payment {
 // Download URLs last 120 seconds, so the link is refreshed while the page stays open.
 const REFRESH_LINK_MS = 100_000;
 
-function ProofLink({ mediaId, tenantId }: { mediaId: string; tenantId: string }) {
+export function ProofLink({
+  mediaId,
+  tenantId,
+  label = 'View proof',
+}: {
+  mediaId: string;
+  tenantId: string;
+  label?: string;
+}) {
   const link = useQuery({
     queryKey: ['media-url', tenantId, mediaId],
     queryFn: () => apiFetch<{ url: string }>(`/media/${mediaId}/download-url`, { tenantId }),
@@ -35,7 +43,7 @@ function ProofLink({ mediaId, tenantId }: { mediaId: string; tenantId: string })
   if (!link.data) return null;
   return (
     <a className="underline" href={link.data.url} target="_blank" rel="noreferrer">
-      View proof
+      {label}
     </a>
   );
 }
