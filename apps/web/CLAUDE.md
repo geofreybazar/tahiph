@@ -1,6 +1,6 @@
 # apps/web
 
-Next.js App Router, hosted on Vercel: public designer websites and the client portal, resolved by hostname. Not yet scaffolded.
+Next.js App Router, hosted on Vercel: public designer websites and the client portal, resolved by hostname. Phase 0 in progress.
 
 Read first: `docs/architecture.md` §4–5, `docs/security.md` §7.
 

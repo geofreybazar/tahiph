@@ -1,6 +1,6 @@
 # apps/admin
 
-React + Vite SPA, hosted on Vercel: the designer dashboard and the super-admin panel. Not yet scaffolded.
+React + Vite SPA, hosted on Vercel: the designer dashboard and the super-admin panel. Phase 0 in progress.
 
 Read first: `docs/architecture.md` §4, `docs/api.md`, `docs/security.md` §3.
 

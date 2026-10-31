@@ -1,6 +1,6 @@
 # Development
 
-> **Nothing is scaffolded yet.** Every command and file below is **planned; not yet configured** and won't work until Phase 0 is complete. Replace this notice when it does.
+> **Phase 0 is in progress.** The root commands work. Database and Supabase steps are **planned; not yet configured**.
 
 Repository: <https://github.com/geofreybazar/tahiph.git>. It is **public**, so never commit real credentials, project references or customer data.
 
@@ -21,24 +21,25 @@ Checked on npm on 2026-10-31.
 | Package | Plan | Why |
 |---|---|---|
 | `prisma`, `@prisma/client`, `@prisma/adapter-pg` | Exactly `7.10.1` | npm's `latest` tag points to a release candidate, `8.0.0-rc.29` |
-| `@nestjs/*` | **11.x**, unless compatibility is shown otherwise | npm's latest is 12.3.2, but `nestjs-zod` 5.5.0 declares support for Nest 10 and 11 only. See ADR 0008 |
+| `@nestjs/*` | **11.x**, unless compatibility is shown otherwise | npm's latest is 12.3.2, but `nestjs-zod` 5.5.0 declares support for Nest 10 and 11 only. See ADR 0008. `@nestjs/schedule` is 6.x on this line |
+| `typescript` | **6.0.x** | npm's latest is 7.0.2, but `typescript-eslint` 8.72 requires below 6.1 |
 | `nestjs-zod` | `5.5.0` or newer compatible | *Approved* |
 | `zod` | 4.x | |
 | `next` | 16.x | Uses `proxy.ts` |
 
-## Getting started (planned)
+## Getting started
 
 ```bash
 git clone https://github.com/geofreybazar/tahiph.git
 cd tahiph
 npm install
 cp .env.example .env
-npx supabase start
-npm run db:generate
-npm run db:migrate
-npm run db:seed
 npm run dev
 ```
+
+The database steps (`npx supabase start`, `db:generate`, `db:migrate`, `db:seed`) are planned and will go before `npm run dev`.
+
+All apps read the one `.env` at the repository root.
 
 | App | URL |
 |---|---|
@@ -49,9 +50,9 @@ npm run dev
 
 Browsers generally resolve `*.localhost` to the local machine, so `demo.localhost:3000` shouldn't need a hosts-file entry. Tools like `curl` may need `--resolve` or a `Host` header.
 
-## Commands (planned; not yet configured)
+## Commands
 
-### Root
+### Root (configured)
 
 | Command | Purpose |
 |---|---|
@@ -62,7 +63,7 @@ Browsers generally resolve `*.localhost` to the local machine, so `demo.localhos
 | `npm run test` | Run all tests |
 | `npm run typecheck` | Type-check all |
 
-### API and database
+### API and database (planned; not yet configured)
 
 | Command | Purpose | Target |
 |---|---|---|

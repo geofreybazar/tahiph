@@ -49,6 +49,7 @@ Error:
 | 201 | | Created |
 | 204 | | Success with no body; the envelope is omitted |
 | 400 | `VALIDATION_ERROR` | Invalid input. `details` is `[{ "path": "email", "message": "..." }]` |
+| 400 | `BAD_REQUEST` | Unreadable request, such as malformed JSON |
 | 400 | `TENANT_REQUIRED` | `X-Tenant-Id` missing |
 | 401 | `UNAUTHENTICATED` | Token missing, invalid or expired |
 | 403 | `FORBIDDEN` | Role not allowed |

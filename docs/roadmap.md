@@ -1,17 +1,17 @@
 # Roadmap
 
-The owner approved this documentation on 2026-10-31. Phase 0 hasn't been built yet. Items marked *(Approved)* are additions to the original brief, approved that day.
+The owner approved this documentation on 2026-10-31. Phase 0 is in progress. Items marked *(Approved)* are additions to the original brief, approved that day.
 
 ## Phase 0: Foundation
 
 ### Monorepo and configuration
 
-- [ ] npm workspaces and Turborepo
-- [ ] Root config: `tsconfig.base.json`, `.editorconfig`, `.prettierrc`, `.gitignore`, `.env.example`
-- [ ] `apps/api`, `apps/admin`, `apps/web` configured
-- [ ] `packages/shared`, proven importable by NestJS (CJS) and by Vite and Next.js (ESM)
-- [ ] Version compatibility settled: NestJS, `nestjs-zod`, `nestjs-cls`, Prisma 7.10.1 (ADR 0008)
-- [ ] CI: lint, typecheck, test, build *(Approved)*
+- [x] npm workspaces and Turborepo
+- [x] Root config: `tsconfig.base.json`, `.editorconfig`, `.prettierrc`, `.gitignore`, `.env.example`
+- [x] `apps/api`, `apps/admin`, `apps/web` configured
+- [x] `packages/shared`, proven importable by NestJS (CJS) and by Vite and Next.js (ESM)
+- [x] Version compatibility settled: NestJS, `nestjs-zod`, `nestjs-cls`, Prisma 7.10.1 (ADR 0008)
+- [x] CI: lint, typecheck, test, build *(Approved)*
 
 ### Database
 
@@ -51,9 +51,9 @@ The owner approved this documentation on 2026-10-31. Phase 0 hasn't been built y
 
 ### Application shells
 
-- [ ] API: envelope, exception filter, Zod validation, Swagger, CORS, `/health`
+- [x] API: envelope, exception filter, Zod validation, Swagger, CORS, `/health` (database check still to add)
 - [ ] Admin: sign-in, tenant switcher, role-based routing, layout
-- [ ] Web: `proxy.ts` hostname resolution, placeholder site on `demo.localhost:3000`
+- [x] Web: `proxy.ts` hostname resolution, placeholder site on `demo.localhost:3000` (API lookup still to add, needs the database)
 
 ### Security tests
 

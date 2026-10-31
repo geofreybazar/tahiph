@@ -1,6 +1,6 @@
 # apps/api
 
-NestJS modular monolith. REST under `/api/v1`. **The only app that accesses PostgreSQL.** Not yet scaffolded.
+NestJS modular monolith. REST under `/api/v1`. **The only app that accesses PostgreSQL.** Phase 0 in progress.
 
 Read first: `docs/security.md`, `docs/api.md`, `docs/schema.md`, `docs/database-conventions.md`.
 

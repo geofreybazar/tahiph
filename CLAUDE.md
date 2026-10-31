@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for wedding fashion designers in the Philippines: a private atelier dashboard, a public website per designer, a client portal, and a super-admin panel.
 
-**Status: docs approved by the owner on 2026-10-31. Nothing is scaffolded yet.**
+**Status: Phase 0 in progress. See `docs/roadmap.md`.**
 
 Repository: <https://github.com/geofreybazar/tahiph.git> (**public**; never commit secrets, real project references or customer data).
 
@@ -98,7 +98,7 @@ Don't replace a technology without the owner's approval. Version pins are in `do
 
 REST under `/api/v1`, with `{ success, data, meta?, timestamp }` and `{ success, statusCode, error: { code, message, details }, timestamp, path }`. Full details are in `docs/api.md`.
 
-## Commands (planned; not yet configured)
+## Commands
 
 ```bash
 npm install
@@ -107,6 +107,8 @@ npm run build
 npm run lint
 npm run test
 npm run typecheck
+
+# Planned; not yet configured
 npm run db:generate
 npm run db:migrate   # local only
 npm run db:deploy    # CI/deploy

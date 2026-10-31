@@ -18,5 +18,5 @@ Checked on npm on 2026-10-31: the latest `nestjs-zod`, 5.5.0, declares peer supp
 
 ## Consequences
 
-- `packages/shared` must work for a CJS NestJS build and for ESM frontends. Prove this first in Phase 0.
+- `packages/shared` ships as ESM only. The CJS NestJS build loads it through Node 24's native `require()` of ES modules, which avoids a dual build. Checked by running the built API under plain Node.
 - A restricted role's responses need their own schema.
