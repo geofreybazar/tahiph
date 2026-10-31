@@ -8,8 +8,12 @@ import { ConfigModule } from './common/config/config.module';
 import { ApiExceptionFilter } from './common/http/api-exception.filter';
 import { ResponseEnvelopeInterceptor } from './common/http/response-envelope.interceptor';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { ClientsModule } from './modules/clients/clients.module';
+import { GarmentsModule } from './modules/garments/garments.module';
 import { HealthModule } from './modules/health/health.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { MediaModule } from './modules/media/media.module';
+import { MeasurementsModule } from './modules/measurements/measurements.module';
 import { MeModule } from './modules/me/me.module';
 import { MembersModule } from './modules/members/members.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -26,6 +30,10 @@ import { PublicSitesModule } from './modules/public-sites/public-sites.module';
     MeModule,
     MediaModule,
     MembersModule,
+    ClientsModule,
+    ProjectsModule,
+    MeasurementsModule,
+    GarmentsModule,
     PlatformModule,
     PublicSitesModule,
   ],

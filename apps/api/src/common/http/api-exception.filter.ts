@@ -39,6 +39,17 @@ function describe(exception: unknown): Described {
       details: exception.details,
     };
   }
+  // A row vanishing or colliding between check and write. Codes only: messages hold SQL details.
+  const prismaCode = (exception as { code?: unknown } | null)?.code;
+  if (prismaCode === 'P2025') {
+    return { status: 404, code: 'NOT_FOUND', message: 'Not found', details: [] };
+  }
+  if (prismaCode === 'P2002') {
+    return { status: 409, code: 'CONFLICT', message: 'This already exists', details: [] };
+  }
+  if (prismaCode === 'P2003') {
+    return { status: 409, code: 'CONFLICT', message: 'This is still in use', details: [] };
+  }
   // Body-parser failures (malformed JSON, oversized body) carry a status but aren't HttpExceptions.
   const status =
     exception instanceof HttpException

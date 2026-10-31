@@ -235,7 +235,7 @@ Index `(tenant_id, incurred_on)`, `(tenant_id, kind, incurred_on)`.
 | uploaded_by_user_id | uuid | → `users` |
 | expires_at | timestamptz | For cleaning up `pending` rows |
 
-Links from garments to files (`garment_media`: `garment_id` →, `media_file_id` →) use the same composite foreign keys.
+Links from garments to files (`garment_media`: `garment_id` →, `media_file_id` →) use the same composite foreign keys. Unique `(tenant_id, media_file_id)`: a file belongs to one garment, and removing it deletes the file.
 
 ### `document_counters`
 

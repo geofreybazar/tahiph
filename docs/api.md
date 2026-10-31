@@ -161,7 +161,10 @@ The Orders screens use these endpoints, because project = order.
 | PATCH | `/garments/:id` | Update, including assigned measurement record | O A S |
 | POST | `/garments/:id/stage` | Move stage; writes an event | O A S |
 | GET | `/garments/:id/stage-events` | History | O A S |
-| DELETE | `/garments/:id` | Remove, refused once work has started | O A |
+| DELETE | `/garments/:id` | Remove, refused once work has started or while it has files | O A |
+| GET | `/garments/:id/media` | Sketches and design references | O A S |
+| POST | `/garments/:id/media` | Attach a confirmed file | O A S |
+| DELETE | `/garments/:id/media/:mediaFileId` | Remove from the garment and delete the file | Uploader, O A |
 
 ## Measurements
 
