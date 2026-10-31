@@ -2,7 +2,7 @@
 
 This file owns TahiPh's security rules. Other documents summarize and link here.
 
-**Status labels:** *Established* = set by the owner's brief. *Confirmed* = chosen by the owner on 2026-10-31. *Approved* = recommended in the review and approved by the owner on 2026-10-31. *Verify in Phase 0* = not yet proven; do not rely on it until a test does.
+**Status labels:** *Established* = set by the owner's brief. *Confirmed* = chosen by the owner on 2026-10-31. *Approved* = recommended in the review and approved by the owner on 2026-10-31.
 
 ## 1. Threats that matter most
 
@@ -110,11 +110,13 @@ Hiding a field in the UI is not a control.
 
 | Client | Scoping | May be imported by |
 |---|---|---|
-| Scoped (default) | Enforced | All feature modules |
-| Identity | None; limited to the lookups needed before tenant context exists | `common/auth` only |
-| Platform | None | `modules/platform` only |
+| Scoped (`SCOPED_PRISMA`, default) | Enforced | All feature modules |
+| Identity (`IdentityRepository`) | None; limited to the lookups needed before tenant context exists | Available to all, but exposes only those lookups |
+| Unscoped (`BASE_PRISMA`) | None | `common/auth`, `common/prisma`, `modules/platform`, `modules/health`, `modules/public-sites`, `modules/media/media-cleanup.job.ts` |
 
 ESLint import restrictions enforce this table, and CI fails on a violation.
+
+On the scoped client, `Tenant` exposes only the current tenant's own row, and `User`, `PlatformAdmin` and `AuditLog` are refused.
 
 ### Tenant model registry
 
@@ -136,17 +138,18 @@ ESLint import restrictions enforce this table, and CI fails on a violation.
 | Any operation not listed | **Reject on registered models** (fail closed, including new Prisma operations) |
 | `$queryRaw`, `$executeRaw` and unsafe variants | Blocked on the scoped client by a top-level `$allOperations` hook |
 
-Adding `tenantId` to a `findUnique`, `update` or `delete` `where` relies on Prisma accepting non-unique filters there. *Verify in Phase 0* with an isolation test on Prisma 7.10.1.
+Adding `tenantId` to a `findUnique`, `update` or `delete` `where` relies on Prisma accepting non-unique filters there. The isolation tests prove this on Prisma 7.10.1 and must keep passing on any upgrade.
 
 ### What the extension cannot cover
 
 Prisma's docs state the `query` extension does not support nested read and write operations. So:
 
-- **Nested writes:** a recursive check inspects `data` and **rejects** `create`, `connect`, `connectOrCreate`, `update`, `upsert`, `delete`, `set` and `disconnect` on tenant-owned relations unless that path is on an explicit allowlist. Allowlisted nested `create` gets `tenantId` set by the check. Composite foreign keys are the real guarantee for `connect`.
+- **Nested writes:** a recursive check **rejects** any relation field in `data`, `create` or `update`. Write each model in its own call, inside a transaction. Composite foreign keys catch a scalar `clientId` from another tenant.
 - **Nested reads:** `include`, `select` and relation filters aren't filtered, but composite foreign keys keep tenant-to-tenant relations within one tenant, so they're safe.
 - **Traversal through global models is the exception.** `membership.user.memberships` reaches other tenants through `User`. The same recursive check rejects `include`, `select` and relation filters that go from a global model to a tenant-owned one.
 - **Raw SQL:** only in a repository that uses a named raw-query helper, must filter by `tenant_id` explicitly, and is flagged for security review in the PR.
 - **Background jobs:** there is no request, so no context. Jobs must call an explicit `runInTenant(tenantId, fn)`. A job with no context fails.
+- **Lazy queries:** a Prisma query runs when awaited, using the context at that moment, not when it was built. `runInTenant` awaits inside its context for this reason. Never build a query in one tenant's context and await it in another's.
 - **Wrong tenant in context:** no database layer catches this. Guards and tests must.
 
 ### Required tests (CI, against a real Postgres)
@@ -209,7 +212,7 @@ Public website hostnames and API request origins are different things.
 ### Portal sessions
 
 - Session cookies are **host-only**. Never set `Domain=.tahi.ph`, which would send one designer's portal session to every designer's subdomain.
-- Supabase redirect URLs need to allow `*.tahi.ph`. *Verify in Phase 0.* Custom domains need a separate login design in Phase 3.
+- Supabase redirect URLs need to allow `*.tahi.ph`. Test this when the portal is built in Phase 2. Custom domains need a separate login design in Phase 3.
 
 ### Caching
 

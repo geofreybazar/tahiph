@@ -246,7 +246,7 @@ A file's access follows its parent. For example, an expense receipt is owner/adm
 
 | Method | Path | Purpose | Access |
 |---|---|---|---|
-| GET | `/public/sites/resolve?host=` | Resolve a hostname to a public tenant profile | Public |
+| GET | `/public/sites/:slug` | Public tenant profile, for the slug `apps/web` derived from the hostname. Built in Phase 0 | Public |
 | GET | `/public/sites/:slug/portfolio`, `/collections`, `/packages` | Public content | Public |
 | POST | `/public/sites/:slug/inquiries` | Inquiry form; rate limited | Public |
 | POST | `/public/sites/:slug/consultations` | Consultation request; rate limited | Public |

@@ -1,12 +1,44 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "envMode": "loose",
-  "globalDependencies": [".env"],
+  "globalDependencies": [
+    ".env"
+  ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
+    "build": {
+      "dependsOn": [
+        "^build",
+        "db:generate"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
+    },
     "lint": {},
-    "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] },
-    "dev": { "dependsOn": ["^build"], "cache": false, "persistent": true }
+    "typecheck": {
+      "dependsOn": [
+        "^build",
+        "db:generate"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^build",
+        "db:generate"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "^build",
+        "db:generate"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "db:generate": {
+      "cache": false
+    }
   }
 }

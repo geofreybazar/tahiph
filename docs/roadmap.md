@@ -1,6 +1,6 @@
 # Roadmap
 
-The owner approved this documentation on 2026-10-31. Phase 0 is in progress. Items marked *(Approved)* are additions to the original brief, approved that day.
+The owner approved this documentation on 2026-10-31. Phase 0 is complete locally. No hosted environment exists yet. Items marked *(Approved)* are additions to the original brief, approved that day.
 
 ## Phase 0: Foundation
 
@@ -15,59 +15,59 @@ The owner approved this documentation on 2026-10-31. Phase 0 is in progress. Ite
 
 ### Database
 
-- [ ] Supabase project, or local Supabase through Docker
-- [ ] `tahi_migrator` and `tahi_api` roles
-- [ ] Default grants revoked; `public` removed from the Data API
-- [ ] Prisma 7.10.1, with `prisma.config.ts` and `adapter-pg`
-- [ ] Pooled connection tested under load *(settles the `pgbouncer` question)*
-- [ ] Foundation tables: `tenants`, `users`, `platform_admins`, `tenant_memberships`, `tenant_invitations`, `media_files`, `document_counters`, `audit_logs` *(Approved)*
-- [ ] Seed script with two tenants
+- [x] Local Supabase through Docker (the hosted project comes before the first real tenant, in Phase 1)
+- [x] `tahi_migrator` and `tahi_api` roles
+- [x] Default grants revoked; `public` removed from the Data API
+- [x] Prisma 7.10.1, with `prisma.config.ts` and `adapter-pg`
+- [x] Pooled connection tested under load *(settles the `pgbouncer` question)*
+- [x] Foundation tables: `tenants`, `users`, `platform_admins`, `tenant_memberships`, `tenant_invitations`, `media_files`, `document_counters`, `audit_logs` *(Approved)*, plus `clients` and `wedding_projects` (tables only), so composite foreign keys are tested against the real schema
+- [x] Seed script with two tenants
 
 ### Authentication and authorization
 
-- [ ] JWT verification through JWKS, with all checks in `docs/security.md` §2
-- [ ] Tenant context with `nestjs-cls`
-- [ ] Membership lookup, `X-Tenant-Id` validation
-- [ ] Role guards and permission map
-- [ ] `platform_admins` guard; separate from membership
-- [ ] MFA for super-admin *(Approved)*
-- [ ] `GET /me`
+- [x] JWT verification through JWKS, with all checks in `docs/security.md` §2
+- [x] Tenant context with `nestjs-cls`
+- [x] Membership lookup, `X-Tenant-Id` validation
+- [x] Role guards and permission map
+- [x] `platform_admins` guard; separate from membership
+- [x] MFA for super-admin *(Approved)*
+- [x] `GET /me`
 
 ### Prisma tenant isolation
 
-- [ ] Tenant model registry and registry-versus-metadata test
-- [ ] Scoped client extension, covering every operation in `docs/security.md` §4
-- [ ] Fail-closed behaviour for missing context and unknown operations
-- [ ] Nested write and global-traversal check
-- [ ] Raw SQL blocked on the scoped client
-- [ ] Identity and platform clients, with import restrictions
+- [x] Tenant model registry and registry-versus-metadata test
+- [x] Scoped client extension, covering every operation in `docs/security.md` §4
+- [x] Fail-closed behaviour for missing context and unknown operations
+- [x] Nested write and global-traversal check
+- [x] Raw SQL blocked on the scoped client
+- [x] Identity and platform clients, with import restrictions
 
 ### Storage
 
-- [ ] Buckets and limits
-- [ ] Reusable storage service
-- [ ] Intent, upload, confirm flow
-- [ ] Abandoned upload cleanup *(Approved)*
+- [x] Buckets and limits
+- [x] Reusable storage service
+- [x] Intent, upload, confirm flow
+- [x] Abandoned upload cleanup *(Approved)*
 
 ### Application shells
 
-- [x] API: envelope, exception filter, Zod validation, Swagger, CORS, `/health` (database check still to add)
-- [ ] Admin: sign-in, tenant switcher, role-based routing, layout
-- [x] Web: `proxy.ts` hostname resolution, placeholder site on `demo.localhost:3000` (API lookup still to add, needs the database)
+- [x] API: envelope, exception filter, Zod validation, Swagger, CORS, `/health` 
+- [x] Admin: sign-in, tenant switcher, role-based routing, layout
+- [x] Web: `proxy.ts` hostname resolution, placeholder site on `demo.localhost:3000` 
 
 ### Security tests
 
-- [ ] Cross-tenant isolation matrix
-- [ ] Composite foreign key test
-- [ ] RLS audit test
-- [ ] Data API access test
-- [ ] Role and staff restriction tests
-- [ ] Storage cross-tenant test
+- [x] Cross-tenant isolation matrix
+- [x] Composite foreign key test
+- [x] RLS audit test
+- [x] Data API access test
+- [x] Role and staff restriction tests
+- [x] Storage cross-tenant test
 
 ### Documentation
 
-- [ ] Replace "planned" commands with the real ones
-- [ ] Resolve every *Verify in Phase 0* item in the docs
+- [x] Replace "planned" commands with the real ones
+- [x] Resolve the *Verify in Phase 0* items in the docs; the portal redirect URL test moves to Phase 2
 
 ## Phase 1: MVP
 
@@ -99,6 +99,8 @@ The owner approved this documentation on 2026-10-31. Phase 0 is in progress. Ite
 
 ### Before the first real tenant *(Approved)*
 
+- [ ] Hosted Supabase project, following `docs/development.md`
+- [ ] First deploys to Render and Vercel
 - [ ] Supabase paid plan and backups, with one practised restore
 - [ ] Custom SMTP
 - [ ] Render always-on plan
@@ -115,7 +117,7 @@ The owner approved this documentation on 2026-10-31. Phase 0 is in progress. Ite
 - [ ] Consultation booking
 - [ ] Rate limiting and spam protection on public forms *(Approved)*
 - [ ] Public image metadata removal *(Approved)*
-- [ ] Client portal
+- [ ] Client portal, including a test of `*.tahi.ph` Supabase redirect URLs
 - [ ] Order tracking
 - [ ] Fitting schedules
 - [ ] Payment visibility

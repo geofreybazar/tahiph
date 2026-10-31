@@ -1,9 +1,7 @@
 import { isValidTenantSlug } from '@tahi/shared';
 
 export type HostRoute =
-  | { kind: 'tenant'; site: string; rewriteTo: string }
-  | { kind: 'root' }
-  | { kind: 'not-found' };
+  { kind: 'tenant'; site: string; rewriteTo: string } | { kind: 'root' } | { kind: 'not-found' };
 
 const stripPort = (host: string) => host.split(':')[0] ?? '';
 

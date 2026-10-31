@@ -57,6 +57,14 @@ class ThingsController {
 })
 class ThingsModule {}
 
+const baseEnv = {
+  DATABASE_URL: 'postgresql://x',
+  SUPABASE_JWT_ISSUER: 'https://test.supabase.co/auth/v1',
+  SUPABASE_JWKS_URL: 'https://test.supabase.co/auth/v1/.well-known/jwks.json',
+  SUPABASE_URL: 'https://test.supabase.co',
+  SUPABASE_SECRET_KEY: 'test-only',
+};
+
 async function start(moduleClass: unknown, env: Partial<Env> = {}) {
   const moduleRef = await Test.createTestingModule({
     imports: [moduleClass as typeof ThingsModule],
@@ -69,6 +77,7 @@ async function start(moduleClass: unknown, env: Partial<Env> = {}) {
     PORT: 0,
     CORS_ORIGINS: ['https://app.tahi.ph'],
     TRUST_PROXY_HOPS: 0,
+    ...baseEnv,
     ...env,
   });
   await app.init();
@@ -182,18 +191,31 @@ describe('application', () => {
 
 describe('parseEnv', () => {
   it('parses a comma-separated origin list', () => {
-    const env = parseEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.tahi.ph' });
+    const env = parseEnv({
+      ...baseEnv,
+      CORS_ORIGINS: 'http://localhost:5173, https://app.tahi.ph',
+    });
     expect(env.CORS_ORIGINS).toEqual(['http://localhost:5173', 'https://app.tahi.ph']);
   });
 
   it.each(['*', 'https://*.tahi.ph', 'https://app.tahi.ph/', 'app.tahi.ph'])(
     'rejects the CORS origin %s',
     (value) => {
-      expect(() => parseEnv({ CORS_ORIGINS: value })).toThrow();
+      expect(() => parseEnv({ ...baseEnv, CORS_ORIGINS: value })).toThrow();
     },
   );
 
+  it.each([
+    'DATABASE_URL',
+    'SUPABASE_JWT_ISSUER',
+    'SUPABASE_JWKS_URL',
+    'SUPABASE_URL',
+    'SUPABASE_SECRET_KEY',
+  ])('requires %s', (name) => {
+    expect(() => parseEnv({ ...baseEnv, [name]: undefined })).toThrow();
+  });
+
   it('requires CORS origins in production', () => {
-    expect(() => parseEnv({ NODE_ENV: 'production' })).toThrow();
+    expect(() => parseEnv({ ...baseEnv, NODE_ENV: 'production' })).toThrow();
   });
 });

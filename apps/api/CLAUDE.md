@@ -1,6 +1,6 @@
 # apps/api
 
-NestJS modular monolith. REST under `/api/v1`. **The only app that accesses PostgreSQL.** Phase 0 in progress.
+NestJS modular monolith. REST under `/api/v1`. **The only app that accesses PostgreSQL.** Shell built in Phase 0.
 
 Read first: `docs/security.md`, `docs/api.md`, `docs/schema.md`, `docs/database-conventions.md`.
 
@@ -42,7 +42,7 @@ Modules: tenants, members, clients, projects, garments, measurements, appointmen
 - Inject only the scoped client in feature modules. Never import the identity or platform client.
 - Never read `tenantId` from a body or query. It comes from the context.
 - For a new tenant model: composite foreign keys, `@@unique([tenantId, id])`, registry entry, RLS in the migration, and a cross-tenant test.
-- Avoid nested writes; use a transaction with separate calls. If one is really needed, allowlist it and test it.
+- Nested writes are refused; use a transaction with separate calls. Await queries inside the tenant context, because Prisma promises are lazy.
 - Don't traverse from `User` or another global model into tenant models in `include` or `select`.
 - Raw SQL: only in a repository, with `tenant_id` filtered explicitly, and flagged for security review.
 - Scheduled jobs use `runInTenant`. Missing context must fail.

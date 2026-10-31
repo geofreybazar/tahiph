@@ -1,6 +1,6 @@
 # apps/web
 
-Next.js App Router, hosted on Vercel: public designer websites and the client portal, resolved by hostname. Phase 0 in progress.
+Next.js App Router, hosted on Vercel: public designer websites and the client portal, resolved by hostname. Shell built in Phase 0.
 
 Read first: `docs/architecture.md` §4–5, `docs/security.md` §7.
 
@@ -31,7 +31,7 @@ lib/                         server API client, tenant resolution, supabase
 3. Apex and reserved subdomains (list in `packages/shared`) aren't tenants.
 4. Accept exactly one label under `ROOT_DOMAIN`.
 5. Rewrite to `/[site]/...`, and always derive `site` from the host, never from a client-supplied path.
-6. Resolve through `GET /public/sites/resolve`. Unknown is 404. Suspended or inactive shows an unavailable page with `noindex`.
+6. Resolve through `GET /public/sites/:slug`. Unknown is 404. Suspended or inactive shows an unavailable page with `noindex`.
 
 ## Boundaries
 
@@ -68,4 +68,4 @@ Per host: metadata, canonical URL, Open Graph, `sitemap.xml`, `robots.txt`. Port
 
 ## UI
 
-Use local shadcn/ui components, and don't create `packages/ui`. Public sites are mobile-first and image-heavy, so use optimized images. Only allow image hosts from the project's Supabase Storage.
+shadcn/ui isn't installed here yet; add it when Phase 2 needs components. Use local copies, and don't create `packages/ui`. Public sites are mobile-first and image-heavy, so use optimized images. Only allow image hosts from the project's Supabase Storage.

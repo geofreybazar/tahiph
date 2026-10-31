@@ -117,7 +117,7 @@ Incoming host
  → apex or reserved subdomain? → not a tenant
  → must be exactly one label under the root domain
  → rewrite /path → /[site]/path
- → page calls GET /public/sites/resolve?host=...
+ → page calls GET /public/sites/:slug
       active    → render
       suspended → "unavailable" page, noindex
       inactive  → "unavailable" page, noindex

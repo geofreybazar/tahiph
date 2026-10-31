@@ -21,6 +21,11 @@ const envSchema = z
       )
       .pipe(z.array(origin)),
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+    DATABASE_URL: z.string().min(1),
+    SUPABASE_JWT_ISSUER: z.url(),
+    SUPABASE_JWKS_URL: z.url(),
+    SUPABASE_URL: z.url(),
+    SUPABASE_SECRET_KEY: z.string().min(1),
   })
   .refine((env) => env.NODE_ENV !== 'production' || env.CORS_ORIGINS.length > 0, {
     path: ['CORS_ORIGINS'],
