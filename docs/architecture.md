@@ -142,7 +142,7 @@ The rewrite puts the site slug in the path, so ISR entries are naturally separat
 | `/portal/**` | Dynamic | **Never cached**: `no-store`, no CDN caching |
 | Public form submission | Server action/route | Never cached |
 
-the API calls a protected revalidation route in `apps/web` when a designer publishes.
+The API calls a protected revalidation route in `apps/web` when a designer publishes.
 
 SEO values such as metadata, canonical URLs, `sitemap.xml` and `robots.txt` are generated per host. Unavailable sites are `noindex`.
 
@@ -196,7 +196,7 @@ Rules are in `docs/security.md` §6.
 | Local | Supabase CLI (Docker), or a dedicated dev project | Local |
 | Production | Paid project | Vercel, Render |
 
-add a staging Supabase project before real tenants. Never share a project between environments.
+Add a staging Supabase project before real tenants. Never share a project between environments.
 
 ## 8. Custom domains (Phase 3)
 

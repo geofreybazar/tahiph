@@ -33,12 +33,12 @@ Supabase Auth issues tokens. `apps/api` verifies them on every protected request
 ### Super-admin (Established; MFA Approved)
 
 - Stored in `platform_admins`, separate from tenant membership. No tenant role ever grants platform access, and the reverse.
-- platform endpoints require MFA (`aal` claim equal to `aal2`).
-- every platform action writes an `audit_logs` row.
+- Platform endpoints require MFA (`aal` claim equal to `aal2`).
+- Every platform action writes an `audit_logs` row.
 
 ### Admin app token storage
 
-`apps/admin` is a single-page app, so its session is readable by JavaScript and any XSS can steal it. a strict Content-Security-Policy on `apps/admin`, no `dangerouslySetInnerHTML` on user content, and few third-party scripts.
+`apps/admin` is a single-page app, so its session is readable by JavaScript and any XSS can steal it. A strict Content-Security-Policy on `apps/admin`, no `dangerouslySetInnerHTML` on user content, and few third-party scripts.
 
 ## 3. Authorization
 
@@ -80,7 +80,7 @@ Hiding a field in the UI is not a control.
 
 - Restricted data lives behind owner/admin-only endpoints, or in role-specific response schemas.
 - An endpoint open to staff must never return a tenant-wide total, even in `meta`.
-- one permission map in `apps/api/src/common/auth/permissions.ts` (`can(role, permission)`). Guards use it, and it becomes the seed for the future permission system. No database-driven permissions until that system is approved.
+- One permission map in `apps/api/src/common/auth/permissions.ts` (`can(role, permission)`). Guards use it, and it becomes the seed for the future permission system. No database-driven permissions until that system is approved.
 
 ## 4. Tenant isolation (Established strategy)
 
@@ -194,7 +194,7 @@ Buckets (Established): `public-media`, `private-media`.
 2. **Upload:** the client sends the file directly to Storage.
 3. **Confirm:** the API checks the stored object's actual size and leading bytes, then marks it `ready` or deletes it.
 
-Only `ready` files can be attached to records. a scheduled job removes `pending` files after 24 hours, and public images have EXIF/GPS data removed, because photos taken at a client's home can carry location data.
+Only `ready` files can be attached to records. A scheduled job removes `pending` files after 24 hours, and public images have EXIF/GPS data removed, because photos taken at a client's home can carry location data.
 
 ## 7. CORS and hostnames
 
@@ -226,7 +226,7 @@ Public pages can be cached by host; portal pages can't. See `docs/architecture.m
 | Supabase publishable key, `VITE_*`, `NEXT_PUBLIC_*` | Public by design; never put a secret under these prefixes |
 
 - This repository is **public**. Commit only `.env.example`, with placeholders.
-- secret scanning in CI.
+- Secret scanning in CI.
 - Rotate immediately on suspected exposure; the rotation steps go in `docs/development.md` once real values exist.
 - Logs never contain tokens, measurements, payment proofs or signed URLs.
 
