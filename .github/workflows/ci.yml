@@ -53,10 +53,6 @@ jobs:
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: npx supabase start --exclude studio,imgproxy,vector,logflare,edge-runtime,postgres-meta
-      - name: Create the application roles
-        env:
-          PGPASSWORD: postgres
-        run: psql -h 127.0.0.1 -p 54322 -U postgres -v ON_ERROR_STOP=1 -f supabase/roles.sql
       - name: Write .env from the local stack
         run: |
           eval "$(npx supabase status -o env)"
