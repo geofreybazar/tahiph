@@ -62,6 +62,7 @@ const baseEnv = {
   SUPABASE_JWT_ISSUER: 'https://test.supabase.co/auth/v1',
   SUPABASE_JWKS_URL: 'https://test.supabase.co/auth/v1/.well-known/jwks.json',
   SUPABASE_URL: 'https://test.supabase.co',
+  ADMIN_APP_URL: 'https://app.test',
   SUPABASE_SECRET_KEY: 'test-only',
 };
 

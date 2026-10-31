@@ -75,9 +75,9 @@ The owner approved this documentation on 2026-10-31. Phase 0 is complete locally
 
 ### Core slice
 
-- [ ] Tenant onboarding
-- [ ] User and membership management
-- [ ] Minimal super-admin: create, suspend, activate tenants *(Approved)*
+- [x] Tenant onboarding
+- [x] User and membership management
+- [x] Minimal super-admin: create, suspend, activate tenants *(Approved)*
 - [ ] Client management
 - [ ] Wedding projects
 - [ ] Garment management

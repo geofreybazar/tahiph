@@ -1,10 +1,13 @@
 import { lazy, type ReactNode, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { AcceptInvitePage } from '@/features/auth/accept-invite-page';
 import { LoginPage } from '@/features/auth/login-page';
+import { ResetPasswordPage } from '@/features/auth/reset-password-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
+import { MembersPage } from '@/features/members/members-page';
 import { PlaceholderPage } from '@/features/placeholder-page';
-import { canSeeFinancials } from '@/lib/navigation';
+import { isManager } from '@/lib/navigation';
 import { supabase } from '@/lib/supabase';
 import { AppShell } from './app-shell';
 import { TenantProvider, useMe, useSession, useTenant } from './session';
@@ -20,9 +23,9 @@ function Message({ title, children }: { title: string; children?: ReactNode }) {
   );
 }
 
-function RequireFinancials({ children }: { children: ReactNode }) {
+function RequireManager({ children }: { children: ReactNode }) {
   const { tenant } = useTenant();
-  return tenant && canSeeFinancials(tenant.role) ? children : <Navigate to="/" replace />;
+  return tenant && isManager(tenant.role) ? children : <Navigate to="/" replace />;
 }
 
 function SignedInApp() {
@@ -40,7 +43,9 @@ function SignedInApp() {
   if (me.data.memberships.length === 0 && !me.data.isPlatformAdmin) {
     return (
       <Message title="No business yet">
-        <p className="text-muted-foreground">Ask the business owner to invite you.</p>
+        <p className="text-muted-foreground">
+          Ask the business owner to invite you, then open the link they send.
+        </p>
         <Button variant="outline" onClick={() => void supabase.auth.signOut()}>
           Sign out
         </Button>
@@ -60,17 +65,25 @@ function SignedInApp() {
           <Route
             path="reports"
             element={
-              <RequireFinancials>
+              <RequireManager>
                 <PlaceholderPage title="Reports" />
-              </RequireFinancials>
+              </RequireManager>
             }
           />
           <Route
             path="expenses"
             element={
-              <RequireFinancials>
+              <RequireManager>
                 <PlaceholderPage title="Expenses" />
-              </RequireFinancials>
+              </RequireManager>
+            }
+          />
+          <Route
+            path="members"
+            element={
+              <RequireManager>
+                <MembersPage />
+              </RequireManager>
             }
           />
           {me.data.isPlatformAdmin && (
@@ -92,6 +105,9 @@ function SignedInApp() {
 
 export function AppRoutes() {
   const { session, loading } = useSession();
+  const { pathname } = useLocation();
   if (loading) return <Message title="Loading…" />;
+  if (pathname === '/accept-invite') return <AcceptInvitePage />;
+  if (pathname === '/reset-password') return <ResetPasswordPage />;
   return session ? <SignedInApp /> : <LoginPage />;
 }

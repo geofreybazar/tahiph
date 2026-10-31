@@ -28,7 +28,7 @@ Supabase Auth issues tokens. `apps/api` verifies them on every protected request
 - The API never receives or stores refresh tokens. `apps/admin` refreshes through `supabase-js`; `apps/web` refreshes through Supabase's server-side session cookies.
 - **A token stays valid until it expires, even after sign-out or removal.** So every tenant request reloads membership and tenant status from the database. Removing a member or suspending a tenant takes effect on the next request. A short in-process cache is allowed only if it is under 60 seconds and documented where it is added.
 - Roles and tenant IDs are never read from `user_metadata`, request bodies or frontend state.
-- `users.id` equals the JWT `sub`. A `users` row is created on first verified request. Email matching (for invitations) requires a verified email.
+- `users.id` equals the JWT `sub`. A `users` row is created on first verified request. Accepting an invitation requires the signed-in email to match and be confirmed, asked of Supabase's admin API, because `email_verified` in token metadata can be changed by its user. Invitation tokens are stored only as hashes, work once and expire after 7 days.
 
 ### Super-admin (Established; MFA Approved)
 
