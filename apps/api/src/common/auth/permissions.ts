@@ -3,6 +3,7 @@ import { TenantRole } from '@tahi/shared';
 /** The role matrix from docs/security.md section 3. Seed for the future permission system. */
 const PERMISSIONS = {
   'members:manage': ['owner', 'admin'],
+  'tenant:update': ['owner', 'admin'],
   'ownership:transfer': ['owner'],
   'finance:read': ['owner', 'admin'],
   'expenses:manage': ['owner', 'admin'],

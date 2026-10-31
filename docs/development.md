@@ -55,7 +55,9 @@ If `docker` reports `permission denied`, run `sudo usermod -aG docker $USER`, th
 | `staff@demo.test` | Staff of Demo Atelier |
 | `owner@other.test` | Owner of Other Atelier |
 | `both@demo.test` | Admin of Demo Atelier, staff of Other Atelier |
-| `admin@tahi.test` | Platform admin, needs MFA for platform API routes |
+| `admin@tahi.test` | Platform admin. The Platform page sets up MFA with an authenticator app on first use |
+
+Local emails, including invitations and password resets, land in Mailpit at `http://localhost:54324`.
 
 | App | URL |
 |---|---|
@@ -101,7 +103,8 @@ Placeholders only. `.env.example` is created in Phase 0.
 | `DATABASE_URL` | `tahi_api`, through the transaction pooler |
 | `DIRECT_URL` | `tahi_migrator`, session or direct. Read by `prisma.config.ts`. Only needed where migrations run |
 | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
-| `SUPABASE_SECRET_KEY` | Storage operations. **Server only** |
+| `SUPABASE_SECRET_KEY` | Storage and Auth admin operations. **Server only** |
+| `ADMIN_APP_URL` | Base of invitation links, such as `https://app.tahi.ph` |
 | `SUPABASE_JWT_ISSUER` | `https://<project-ref>.supabase.co/auth/v1` |
 | `SUPABASE_JWKS_URL` | `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json` |
 | `CORS_ORIGINS` | Comma-separated exact origins |
@@ -153,7 +156,7 @@ Not yet run. `supabase/roles.sql` is for local use and CI only; hosted roles nee
 4. Revoke default privileges for `anon`, `authenticated` and `service_role` in `public`.
 5. Remove `public` from the Data API's exposed schemas.
 6. Create the buckets, with limits.
-7. Set redirect URLs for `app.tahi.ph` and `*.tahi.ph`.
+7. Set the site URL to `https://app.tahi.ph`, redirect URLs for `app.tahi.ph/**` and `*.tahi.ph`, and enable TOTP MFA.
 8. Configure custom SMTP. The built-in provider allows 2 emails per hour.
 9. Run `npm run db:deploy`.
 10. Run the RLS audit test against the project.

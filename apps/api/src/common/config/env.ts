@@ -25,6 +25,7 @@ const envSchema = z
     SUPABASE_JWT_ISSUER: z.url(),
     SUPABASE_JWKS_URL: z.url(),
     SUPABASE_URL: z.url(),
+    ADMIN_APP_URL: z.url(),
     SUPABASE_SECRET_KEY: z.string().min(1),
   })
   .refine((env) => env.NODE_ENV !== 'production' || env.CORS_ORIGINS.length > 0, {

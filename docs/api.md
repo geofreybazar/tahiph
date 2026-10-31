@@ -122,7 +122,7 @@ URI versioning, `/api/v1`. Additive changes stay in v1. Breaking changes get `/a
 | DELETE | `/members/:id` | Remove a member | O (A for staff only) |
 | POST | `/members/transfer-ownership` | Transfer ownership | O |
 | GET | `/invitations` | Pending invitations | O A |
-| POST | `/invitations` | Invite by email | O (A for staff only) |
+| POST | `/invitations` | Invite by email. Emails new people; always returns a one-time link for the inviter, because Supabase can't email an existing account | O (A for staff only) |
 | DELETE | `/invitations/:id` | Revoke | O A |
 
 ## Clients

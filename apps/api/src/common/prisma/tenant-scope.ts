@@ -24,7 +24,14 @@ const READS_AND_FILTERED_WRITES = new Set([
   'deleteMany',
 ]);
 const UPDATES = new Set(['update', 'updateMany', 'updateManyAndReturn']);
-const SELF_SCOPED_READS = new Set(['findUnique', 'findFirst', 'findMany', 'count']);
+const SELF_SCOPED_READS = new Set([
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'count',
+]);
 const SELF_SCOPED_UPDATES = new Set(['update', 'updateMany']);
 const RELATION_FILTERS = ['some', 'none', 'every', 'is', 'isNot'];
 

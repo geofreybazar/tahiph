@@ -28,11 +28,13 @@ describe('chooseTenant', () => {
 });
 
 describe('navigationFor', () => {
-  it('hides financial items from staff', () => {
+  it('hides manager items from staff', () => {
     expect(navigationFor('staff').map((item) => item.label)).toEqual(['Dashboard']);
   });
 
-  it.each(['owner', 'admin'] as const)('shows financial items to %s', (role) => {
-    expect(navigationFor(role).map((item) => item.label)).toContain('Reports');
+  it.each(['owner', 'admin'] as const)('shows manager items to %s', (role) => {
+    expect(navigationFor(role).map((item) => item.label)).toEqual(
+      expect.arrayContaining(['Reports', 'Expenses', 'Team']),
+    );
   });
 });

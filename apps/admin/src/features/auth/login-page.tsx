@@ -14,11 +14,14 @@ const schema = z.object({
 });
 type Credentials = z.infer<typeof schema>;
 
-export function LoginPage() {
+export function LoginPage({ notice }: { notice?: string }) {
   const [failed, setFailed] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
   const {
     register,
     handleSubmit,
+    getValues,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<Credentials>({ resolver: zodResolver(schema) });
 
@@ -32,6 +35,20 @@ export function LoginPage() {
     }
   }
 
+  async function sendReset() {
+    setFailed(null);
+    if (!(await trigger('email'))) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(getValues('email'), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    // The same message either way, so this can't reveal whether an account exists.
+    if (error && error.status !== 400 && error.status !== 422) {
+      setFailed('Could not send the email. Try again.');
+    } else {
+      setResetSent(true);
+    }
+  }
+
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
@@ -39,6 +56,7 @@ export function LoginPage() {
           <CardTitle>Sign in to TahiPh</CardTitle>
         </CardHeader>
         <CardContent>
+          {notice && <p className="mb-4 text-sm text-muted-foreground">{notice}</p>}
           <form className="space-y-4" onSubmit={handleSubmit(signIn)} noValidate>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -72,6 +90,19 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
+            <Button
+              type="button"
+              variant="link"
+              className="w-full"
+              onClick={() => void sendReset()}
+            >
+              Forgot your password?
+            </Button>
+            {resetSent && (
+              <p role="status" className="text-sm text-muted-foreground">
+                If that email has an account, a reset link is on its way.
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

@@ -11,6 +11,8 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { MediaModule } from './modules/media/media.module';
 import { MeModule } from './modules/me/me.module';
+import { MembersModule } from './modules/members/members.module';
+import { PlatformModule } from './modules/platform/platform.module';
 import { PublicSitesModule } from './modules/public-sites/public-sites.module';
 
 @Module({
@@ -23,6 +25,8 @@ import { PublicSitesModule } from './modules/public-sites/public-sites.module';
     HealthModule,
     MeModule,
     MediaModule,
+    MembersModule,
+    PlatformModule,
     PublicSitesModule,
   ],
   providers: [

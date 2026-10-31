@@ -346,6 +346,13 @@ describe('the Tenant model', () => {
     );
   });
 
+  it('the OrThrow reads stay on the current tenant', async () => {
+    const first = await asA(() => db.tenant.findFirstOrThrow());
+    expect(first.id).toBe(tenantA);
+    const unique = await asA(() => db.tenant.findUniqueOrThrow({ where: { id: tenantB } }));
+    expect(unique.id).toBe(tenantA);
+  });
+
   it('updates only the current tenant', async () => {
     await asA(() => db.tenant.update({ where: { id: tenantB }, data: { name: 'Renamed' } }));
     expect((await base.tenant.findUniqueOrThrow({ where: { id: tenantB } })).name).toBe('B');
