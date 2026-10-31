@@ -9,6 +9,8 @@ const PERMISSIONS = {
   'expenses:manage': ['owner', 'admin'],
   'payments:void': ['owner', 'admin'],
   'projects:change-price': ['owner', 'admin'],
+  'records:archive': ['owner', 'admin'],
+  'garments:delete': ['owner', 'admin'],
 } as const satisfies Record<string, readonly TenantRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

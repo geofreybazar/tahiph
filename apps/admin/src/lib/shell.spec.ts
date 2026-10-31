@@ -29,7 +29,12 @@ describe('chooseTenant', () => {
 
 describe('navigationFor', () => {
   it('hides manager items from staff', () => {
-    expect(navigationFor('staff').map((item) => item.label)).toEqual(['Dashboard']);
+    expect(navigationFor('staff').map((item) => item.label)).toEqual([
+      'Dashboard',
+      'Clients',
+      'Orders',
+      'Production',
+    ]);
   });
 
   it.each(['owner', 'admin'] as const)('shows manager items to %s', (role) => {

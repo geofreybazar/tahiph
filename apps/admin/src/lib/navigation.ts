@@ -8,6 +8,9 @@ export interface NavItem {
 
 const ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard' },
+  { to: '/clients', label: 'Clients' },
+  { to: '/orders', label: 'Orders' },
+  { to: '/production', label: 'Production' },
   { to: '/reports', label: 'Reports', managersOnly: true },
   { to: '/expenses', label: 'Expenses', managersOnly: true },
   { to: '/members', label: 'Team', managersOnly: true },

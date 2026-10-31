@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { AcceptInvitePage } from '@/features/auth/accept-invite-page';
 import { LoginPage } from '@/features/auth/login-page';
 import { ResetPasswordPage } from '@/features/auth/reset-password-page';
+import { ClientDetailPage } from '@/features/clients/client-detail-page';
+import { ClientsPage } from '@/features/clients/clients-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
+import { GarmentDetailPage } from '@/features/garments/garment-detail-page';
+import { ProductionPage } from '@/features/garments/production-page';
+import { ProfilePage } from '@/features/measurements/profile-page';
+import { ProjectDetailPage } from '@/features/projects/project-detail-page';
+import { ProjectsPage } from '@/features/projects/projects-page';
 import { MembersPage } from '@/features/members/members-page';
 import { PlaceholderPage } from '@/features/placeholder-page';
 import { isManager } from '@/lib/navigation';
@@ -62,6 +69,17 @@ function SignedInApp() {
             index
             element={isPlatformOnly ? <Navigate to="/platform" replace /> : <DashboardPage />}
           />
+          {!isPlatformOnly && (
+            <>
+              <Route path="clients" element={<ClientsPage />} />
+              <Route path="clients/:id" element={<ClientDetailPage />} />
+              <Route path="orders" element={<ProjectsPage />} />
+              <Route path="orders/:id" element={<ProjectDetailPage />} />
+              <Route path="production" element={<ProductionPage />} />
+              <Route path="garments/:id" element={<GarmentDetailPage />} />
+              <Route path="measurements/:id" element={<ProfilePage />} />
+            </>
+          )}
           <Route
             path="reports"
             element={

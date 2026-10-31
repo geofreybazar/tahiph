@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { useMe, useTenant } from '@/app/session';
+import { selectClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,7 @@ interface Invitation {
   expiresAt: string;
 }
 
-const selectClass = 'h-9 rounded-md border bg-background px-2 text-sm';
+
 
 export function MembersPage() {
   const { tenant } = useTenant();

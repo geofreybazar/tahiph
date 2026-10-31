@@ -64,6 +64,36 @@ enum ProjectStatus {
   @@map("project_status")
 }
 
+enum GarmentStage {
+  design
+  fabric_sourcing
+  cutting
+  sewing
+  embellishment
+  fitting
+  alterations
+  ready
+  released
+
+  @@map("garment_stage")
+}
+
+enum WearerRole {
+  bride
+  groom
+  entourage
+  other
+
+  @@map("wearer_role")
+}
+
+enum MeasurementUnit {
+  in
+  cm
+
+  @@map("measurement_unit")
+}
+
 // ---------- Global models ----------
 
 model Tenant {
@@ -74,12 +104,17 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships      TenantMembership[]
-  invitations      TenantInvitation[]
-  mediaFiles       MediaFile[]
-  documentCounters DocumentCounter[]
-  clients          Client[]
-  weddingProjects  WeddingProject[]
+  memberships         TenantMembership[]
+  invitations         TenantInvitation[]
+  mediaFiles          MediaFile[]
+  documentCounters    DocumentCounter[]
+  clients             Client[]
+  weddingProjects     WeddingProject[]
+  garments            Garment[]
+  garmentEvents       GarmentStageEvent[]
+  measurementProfiles MeasurementProfile[]
+  measurementRecords  MeasurementRecord[]
+  measurementValues   MeasurementValue[]
 
   @@map("tenants")
 }
@@ -92,10 +127,12 @@ model User {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships     TenantMembership[]
-  invitationsSent TenantInvitation[]
-  mediaUploaded   MediaFile[]
-  platformAdmin   PlatformAdmin?
+  memberships          TenantMembership[]
+  invitationsSent      TenantInvitation[]
+  mediaUploaded        MediaFile[]
+  stageChanges         GarmentStageEvent[]
+  measurementsRecorded MeasurementRecord[]
+  platformAdmin        PlatformAdmin?
 
   @@map("users")
 }
@@ -209,8 +246,9 @@ model Client {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  projects WeddingProject[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  projects            WeddingProject[]
+  measurementProfiles MeasurementProfile[]
 
   @@unique([tenantId, id])
   @@index([tenantId, fullName])
@@ -235,10 +273,116 @@ model WeddingProject {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   client Client @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
 
+  garments Garment[]
+
   @@unique([tenantId, id])
   @@unique([tenantId, projectNumber])
   @@index([tenantId, clientId])
   @@index([tenantId, status])
   @@index([tenantId, weddingDate])
   @@map("wedding_projects")
+}
+
+model Garment {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  tenantId            String       @map("tenant_id") @db.Uuid
+  projectId           String       @map("project_id") @db.Uuid
+  name                String
+  wearerName          String       @map("wearer_name")
+  wearerRole          WearerRole   @map("wearer_role")
+  description         String?
+  stage               GarmentStage @default(design)
+  measurementRecordId String?      @map("measurement_record_id") @db.Uuid
+  dueDate             DateTime?    @map("due_date") @db.Date
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project           WeddingProject      @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  events            GarmentStageEvent[]
+  measurementRecord MeasurementRecord?  @relation(fields: [tenantId, measurementRecordId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, projectId])
+  @@index([tenantId, stage])
+  @@index([tenantId, measurementRecordId])
+  @@map("garments")
+}
+
+/// Append-only: every stage change, including going backward.
+model GarmentStageEvent {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  garmentId       String        @map("garment_id") @db.Uuid
+  fromStage       GarmentStage? @map("from_stage")
+  toStage         GarmentStage  @map("to_stage")
+  changedByUserId String        @map("changed_by_user_id") @db.Uuid
+  note            String?
+  occurredAt      DateTime      @default(now()) @map("occurred_at") @db.Timestamptz
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  garment   Garment @relation(fields: [tenantId, garmentId], references: [tenantId, id], onDelete: Restrict)
+  changedBy User    @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, garmentId, occurredAt])
+  @@map("garment_stage_events")
+}
+
+model MeasurementProfile {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  personName    String    @map("person_name")
+  notes         String?
+  portalVisible Boolean   @default(false) @map("portal_visible")
+  archivedAt    DateTime? @map("archived_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  client  Client              @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  records MeasurementRecord[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, clientId])
+  @@map("measurement_profiles")
+}
+
+/// Never edited after creation: a correction is a new record.
+model MeasurementRecord {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  tenantId         String          @map("tenant_id") @db.Uuid
+  profileId        String          @map("profile_id") @db.Uuid
+  takenOn          DateTime        @map("taken_on") @db.Date
+  unit             MeasurementUnit
+  notes            String?
+  recordedByUserId String          @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  profile    MeasurementProfile @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Restrict)
+  recordedBy User               @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  values     MeasurementValue[]
+  garments   Garment[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, profileId, takenOn(sort: Desc)])
+  @@map("measurement_records")
+}
+
+model MeasurementValue {
+  id       String  @id @default(uuid(7)) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  recordId String  @map("record_id") @db.Uuid
+  key      String
+  label    String?
+  value    Decimal @db.Decimal(6, 2)
+
+  tenant Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  record MeasurementRecord @relation(fields: [tenantId, recordId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, recordId, key])
+  @@map("measurement_values")
 }
