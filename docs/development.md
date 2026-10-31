@@ -207,6 +207,12 @@ Vercel deploys from Git on its own, so a frontend can go live before the **Deplo
 
 A mocked database can't test tenant isolation. The tests use Vitest. `npm run test` needs local Supabase running, and recreates a separate `tahi_test` database each run. CI uses plain Postgres 17 with the same roles.
 
+### Browser tests
+
+`npm run test:e2e` runs the journeys in `apps/admin/e2e` with Playwright against real Supabase auth, storage and email. CI runs them too. They need local Supabase running and a built API, so run `npm run build` first after API changes. The first time, also run `npx playwright install chromium` in `apps/admin`.
+
+They're safe to run alongside `npm run dev`: they use their own ports (4101 and 5174), and `apps/api/prisma/e2e-fixture.ts` creates throwaway tenants and users, all prefixed `e2e-`, and removes them afterwards. It refuses to run against anything but a local database. Tests share those tenants and aren't retried, so a failure is never hidden by a second attempt. Local email is limited to 30 an hour, and each run sends about 3.
+
 The API image builds from the repository root: `docker build -f apps/api/Dockerfile .`
 
 ## Troubleshooting

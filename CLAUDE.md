@@ -106,6 +106,7 @@ npm run dev
 npm run build
 npm run lint
 npm run test
+npm run test:e2e   # needs local Supabase and a built API
 npm run typecheck
 
 npm run db:generate
@@ -120,6 +121,7 @@ npm run db:seed      # local only
 - Tenant isolation is tested against real Postgres, never mocks.
 - Every feature module has a cross-tenant test and role tests.
 - CI runs the registry check, RLS audit and Data API access test.
+- A new user journey gets a browser test in `apps/admin/e2e`, run with `npm run test:e2e`.
 
 ## Git
 
