@@ -112,6 +112,13 @@ enum PaymentMethod {
   @@map("payment_method")
 }
 
+enum ExpenseKind {
+  operating
+  production
+
+  @@map("expense_kind")
+}
+
 // ---------- Global models ----------
 
 model Tenant {
@@ -133,6 +140,7 @@ model Tenant {
   garmentMedia         GarmentMedia[]
   paymentScheduleItems PaymentScheduleItem[]
   payments             Payment[]
+  expenses             Expense[]
   measurementProfiles  MeasurementProfile[]
   measurementRecords   MeasurementRecord[]
   measurementValues    MeasurementValue[]
@@ -152,6 +160,7 @@ model User {
   invitationsSent      TenantInvitation[]
   paymentsRecorded     Payment[]           @relation("PaymentRecordedBy")
   paymentsVoided       Payment[]           @relation("PaymentVoidedBy")
+  expensesRecorded     Expense[]
   mediaUploaded        MediaFile[]
   stageChanges         GarmentStageEvent[]
   measurementsRecorded MeasurementRecord[]
@@ -241,8 +250,9 @@ model MediaFile {
   tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   uploadedBy User   @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
 
-  garmentLink   GarmentMedia?
-  paymentProofs Payment[]
+  garmentLink    GarmentMedia?
+  paymentProofs  Payment[]
+  expenseReceipt Expense?
 
   @@unique([tenantId, id])
   @@unique([bucket, objectKey])
@@ -301,6 +311,7 @@ model WeddingProject {
 
   garments             Garment[]
   paymentScheduleItems PaymentScheduleItem[]
+  expenses             Expense[]
   payments             Payment[]
 
   @@unique([tenantId, id])
@@ -488,4 +499,33 @@ model Payment {
   @@index([tenantId, scheduleItemId])
   @@index([tenantId, proofMediaId])
   @@map("payments")
+}
+
+/// Owner and admin only. Soft deleted, so reports can be explained later.
+model Expense {
+  id               String      @id @default(uuid(7)) @db.Uuid
+  tenantId         String      @map("tenant_id") @db.Uuid
+  kind             ExpenseKind
+  category         String
+  description      String?
+  amountCentavos   Int         @map("amount_centavos")
+  incurredOn       DateTime    @map("incurred_on") @db.Date
+  projectId        String?     @map("project_id") @db.Uuid
+  receiptMediaId   String?     @map("receipt_media_id") @db.Uuid
+  recordedByUserId String      @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?   @map("deleted_at") @db.Timestamptz
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  project    WeddingProject? @relation(fields: [tenantId, projectId], references: [tenantId, id], onDelete: Restrict)
+  receipt    MediaFile?      @relation(fields: [tenantId, receiptMediaId], references: [tenantId, id], onDelete: Restrict)
+  recordedBy User            @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, receiptMediaId])
+  @@index([tenantId, incurredOn])
+  @@index([tenantId, kind, incurredOn])
+  @@index([tenantId, projectId])
+  @@map("expenses")
 }

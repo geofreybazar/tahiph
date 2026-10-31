@@ -200,3 +200,23 @@ export const listPaymentsSchema = paginationQuerySchema.extend({
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
 });
+
+// ---------- Expenses ----------
+
+export const EXPENSE_KINDS = ['operating', 'production'] as const;
+
+export const expenseInputSchema = z.object({
+  kind: z.enum(EXPENSE_KINDS),
+  category: text(80),
+  description: optionalText(2000),
+  amountCentavos: z.number().int().min(1).max(2_147_483_647),
+  incurredOn: z.iso.date(),
+  projectId: z.uuid().nullish().transform((value) => value ?? null),
+  /** Left out: unchanged. Null: removed, which deletes the file. */
+  receiptMediaId: z.uuid().nullish(),
+});
+export const listExpensesSchema = paginationQuerySchema.extend({
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+  kind: z.enum(EXPENSE_KINDS).optional(),
+});

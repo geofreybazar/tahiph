@@ -7,6 +7,7 @@ import { ResetPasswordPage } from '@/features/auth/reset-password-page';
 import { ClientDetailPage } from '@/features/clients/client-detail-page';
 import { ClientsPage } from '@/features/clients/clients-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
+import { ExpensesPage } from '@/features/expenses/expenses-page';
 import { GarmentDetailPage } from '@/features/garments/garment-detail-page';
 import { ProductionPage } from '@/features/garments/production-page';
 import { ProfilePage } from '@/features/measurements/profile-page';
@@ -101,7 +102,7 @@ function SignedInApp() {
             path="expenses"
             element={
               <RequireManager>
-                <PlaceholderPage title="Expenses" />
+                <ExpensesPage />
               </RequireManager>
             }
           />

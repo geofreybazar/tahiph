@@ -9,6 +9,7 @@ import { ApiExceptionFilter } from './common/http/api-exception.filter';
 import { ResponseEnvelopeInterceptor } from './common/http/response-envelope.interceptor';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { ClientsModule } from './modules/clients/clients.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
 import { GarmentsModule } from './modules/garments/garments.module';
 import { HealthModule } from './modules/health/health.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -36,6 +37,7 @@ import { PublicSitesModule } from './modules/public-sites/public-sites.module';
     MeasurementsModule,
     GarmentsModule,
     PaymentsModule,
+    ExpensesModule,
     PlatformModule,
     PublicSitesModule,
   ],
