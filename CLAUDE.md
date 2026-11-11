@@ -44,6 +44,10 @@ Read `docs/` before working on any area. Key docs:
 - `npm run lint | typecheck | test | build`: everything via Turborepo. Run all four before claiming completion.
 - `npm run test:int`: API integration tests (needs `DATABASE_URL` + `REDIS_URL`).
 - `npm run db:migrate:dev | db:migrate:deploy | db:generate`: Prisma (`packages/database`).
+- `npm run format:check` and `npm run db:drift` (migrations match `schema.prisma`): CI runs both, so run them too.
+- Single API test: `npx vitest run --project unit src/path/file.spec.ts` or `--project integration test/auth.int.spec.ts` (run from `apps/api`; add `-t "<name>"` to filter). Unit specs live beside sources (`src/**/*.spec.ts`), integration specs in `test/**/*.int.spec.ts`.
+- `npm run dev` starts all apps (api :3000, dashboard :3001, storefront :3002, admin :3003). The worker runs separately: `npm run dev:worker -w @tahi/api`.
+- Local infra: `docker compose up -d` (Postgres, Redis, Mailpit UI at :8025). Migrations run as `tahi_owner`; the API connects as the least-privilege `tahi_app` role.
 
 ## Tenancy conventions (ADR-018, ADR-019)
 - Services inject `TENANT_DB` and call `db()` (never hold a client). Use `withTenantTx(fn)` for multi-statement units of work; no external I/O inside it.

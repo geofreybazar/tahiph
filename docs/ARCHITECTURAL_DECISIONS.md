@@ -264,6 +264,6 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
   - ids from `@References()`.
 - `@ResponseSchema()` is mandatory: the boot audit refuses to start without it, and the envelope interceptor parses every response with it, so undeclared fields are stripped.
 - A unit test checks that the inventory's paths equal Express's registered routes, and that the document contains no tenant id or secret fields.
-- **Delivery** (implemented on `feat/api-contracts`): `npm run openapi -w @tahi/api -- <file>` writes the document, and CI uploads it as the `openapi` artifact. The API does not serve it in any environment.
+- **Delivery** (implemented, merged 2026-11-11): `npm run openapi -w @tahi/api -- <file>` writes the document, and CI uploads it as the `openapi` artifact. The API does not serve it in any environment.
 - Refinements and transforms (e.g. email normalization) appear as plain types in the document; they are enforced at runtime.
 **Consequences:** About 250 lines of glue code that we maintain.

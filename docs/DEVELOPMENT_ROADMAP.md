@@ -64,7 +64,7 @@ Work items:
   - Every route is checked at boot for an explicit realm and access rule (deny by default).
   - The only tenant-realm route that takes resource ids from the client, `POST /tenant/invitations` (`roleId`), has a cross-tenant 404 test.
   - The access suite covers foreign ids, foreign hosts and foreign sessions.
-  - **Not built:** automatic per-route cross-tenant tests enumerated from the router. Phase 3 adds them alongside its many resource routes.
+  - Automatic per-route cross-tenant tests enumerated from the router were added afterwards on `feat/api-contracts` (merged 2026-11-11).
 - [x] RLS check passes for every tenant table. The integration test compares database policies with `TENANT_MODELS` and runs as a non-superuser role.
 - [x] Auth flows are covered by integration tests: staff, platform and customer.
 - [x] Throttling is verified with the in-memory store in flow tests and the Redis store in CI.
@@ -72,7 +72,7 @@ Work items:
 **Open from Phase 2:** the OpenAPI generator choice (ADR-015) has not been made. Phase 2's endpoints are fully described by the Zod contracts in `@tahi/validation`. Propose deciding it at the start of Phase 3.
 
 ## Phase 3 — Tenant business management
-**Progress:** `feat/api-contracts` (OpenAPI generator + automatic cross-tenant suite) is in review.
+**Progress:** `feat/api-contracts` (OpenAPI generator + automatic cross-tenant suite) merged 2026-11-11.
 
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
 
