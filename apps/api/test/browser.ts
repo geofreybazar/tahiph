@@ -46,10 +46,15 @@ export class Browser {
     return res;
   }
 
-  async post(path: string, body: object = {}) {
+  post(path: string, body: object = {}) {
+    return this.send('post', path, body);
+  }
+
+  /** An unsafe request (POST/PUT/PATCH/DELETE) with Origin and CSRF token. */
+  async send(method: 'post' | 'put' | 'patch' | 'delete', path: string, body: object = {}) {
     if (!this.cookies.has('__Host-tahi_csrf')) await this.get(this.csrfPath);
-    const res = await request(this.server())
-      .post(`/api/v1/${path}`)
+    const agent = request(this.server());
+    const res = await agent[method](`/api/v1/${path}`)
       .set('Host', this.host)
       .set('Origin', `http://${this.host}`)
       .set('X-CSRF-Token', this.cookies.get('__Host-tahi_csrf') ?? '')

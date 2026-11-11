@@ -90,20 +90,27 @@ describe('Cross-tenant isolation for every route (integration)', () => {
     return { tenant, resources: { role: tenant.roles.staff!, membership: member.id } };
   }
 
-  /** Row counts the victim atelier owns, in every tenant table plus its auth tokens. */
-  async function footprint(t: TenantFixture): Promise<Record<string, number>> {
-    const counts = await asTenant(prisma, t.tenantId, async (tx) => {
-      const out: Record<string, number> = {};
+  /**
+   * Content hash of every row the victim atelier owns, in every tenant table plus its auth
+   * tokens, so inserts, updates and deletes all change it (row counts miss updates).
+   */
+  async function footprint(t: TenantFixture): Promise<Record<string, string>> {
+    const hash = (from: string) =>
+      `SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r::text), '')) AS h FROM ${from}`;
+    const out = await asTenant(prisma, t.tenantId, async (tx) => {
+      const tables: Record<string, string> = {};
       for (const table of Object.values(TENANT_MODELS)) {
-        const [r] = await tx.$queryRawUnsafe<{ n: bigint }[]>(
-          `SELECT count(*) AS n FROM "${table}"`,
-        );
-        out[table] = Number(r!.n);
+        const [r] = await tx.$queryRawUnsafe<{ h: string }[]>(hash(`"${table}" r`));
+        tables[table] = r!.h;
       }
-      return out;
+      return tables;
     });
-    counts.auth_token = await prisma.authToken.count({ where: { tenantId: t.tenantId } });
-    return counts;
+    const [tokens] = await prisma.$queryRawUnsafe<{ h: string }[]>(
+      hash(`(SELECT * FROM auth_token WHERE tenant_id = $1::uuid) r`),
+      t.tenantId,
+    );
+    out.auth_token = tokens!.h;
+    return out;
   }
 
   beforeAll(async () => {
@@ -177,6 +184,14 @@ describe('Cross-tenant isolation for every route (integration)', () => {
     );
   });
 
+  it('detects updates in the other atelier, not only inserts', async () => {
+    const before = await footprint(B.tenant);
+    await asTenant(prisma, B.tenant.tenantId, (tx) =>
+      tx.role.update({ where: { id: B.resources.role! }, data: { name: `renamed-${suffix()}` } }),
+    );
+    expect(await footprint(B.tenant)).not.toEqual(before);
+  });
+
   it('returns 404 for another atelier’s ids and writes nothing there', async () => {
     const failures: string[] = [];
     for (const route of routes.filter((r) => Object.keys(r.references).length > 0)) {
@@ -196,7 +211,13 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
             else body[f] = id;
           }
-          return route.method === 'GET' ? actorBrowser.get(path) : actorBrowser.post(path, body);
+          return route.method === 'GET'
+            ? actorBrowser.get(path)
+            : actorBrowser.send(
+                route.method.toLowerCase() as 'post' | 'put' | 'patch' | 'delete',
+                path,
+                body,
+              );
         };
 
         const before = await footprint(B.tenant);
@@ -214,7 +235,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             `${route.operationId} ${field}: own id gave ${own.status} (sample broken?)`,
           );
         }
-        // Some routes rotate the session (switch-tenant); keep acting as A.
+        // Routes that rotate the session (switch-tenant) set a new cookie; Browser keeps it.
       }
     }
     expect(failures).toEqual([]);
