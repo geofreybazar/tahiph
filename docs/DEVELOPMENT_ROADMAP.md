@@ -36,7 +36,7 @@ Work items:
 **Exit criteria:**
 - [x] `npm ci && turbo lint typecheck test build` passes (verified locally, 2026-11-11).
 - [ ] `docker compose up` brings up all services healthy locally. **Not verified:** Docker is not installed in the development WSL environment.
-- [ ] CI is green, including the Docker image build and smoke jobs, which stand in for the local Docker check.
+- [x] CI is green, including the Docker image build and smoke jobs, which stand in for the local Docker check (run 42968791459, 2026-11-11).
 
 **Implementation notes:** see ADR-014 to ADR-017 for version pins and deviations (ESM backend, TypeScript 6, ESLint 9, OpenAPI deferred to Phase 2, local S3 deferred to Phase 3).
 
