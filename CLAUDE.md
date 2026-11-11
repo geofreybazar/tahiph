@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for fashion designers and bespoke ateliers (Philippines). Monorepo: Turborepo + npm workspaces.
 
-**Current phase:** 1 (foundation) is in review on `chore/phase-1-foundation`. Phase 0 architecture is approved. **Do not start Phase 2 (auth and multi-tenancy) until the product owner approves Phase 1.**
+**Current phase:** 2 (authentication and multi-tenancy). Phases 0 and 1 are complete and merged.
 
 ## Source of truth
 Read `docs/` before working on any area. Key docs:

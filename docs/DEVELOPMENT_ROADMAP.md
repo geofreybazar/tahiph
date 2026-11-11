@@ -1,13 +1,13 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phase 0 complete (approved 2026-11-11). Phase 1 implemented on branch `chore/phase-1-foundation`, awaiting review. Later phases are planned, not started.
+> **Status:** Phases 0 and 1 complete (approved 2026-11-11). Phase 2 in progress. Later phases are planned, not started.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Product discovery & architecture | **Complete** |
-| 1 | Project foundation | **In review** (Docker verification pending, see below) |
-| 2 | Authentication & multi-tenancy | Not started |
+| 1 | Project foundation | **Complete** (local Docker check outstanding, see below) |
+| 2 | Authentication & multi-tenancy | **In progress** |
 | 3 | Tenant business management | Not started |
 | 4 | Sales & operations | Not started |
 | 5 | Personalized storefront | Not started |
@@ -37,6 +37,8 @@ Work items:
 - [x] `npm ci && turbo lint typecheck test build` passes (verified locally, 2026-11-11).
 - [ ] `docker compose up` brings up all services healthy locally. **Not verified:** Docker is not installed in the development WSL environment.
 - [x] CI is green, including the Docker image build and smoke jobs, which stand in for the local Docker check (run 42968791459, 2026-11-11).
+
+Approved by the product owner on 2026-11-11 with the local Docker check still open (tracked as R16). CI's image build and smoke jobs cover it in the meantime.
 
 **Implementation notes:** see ADR-014 to ADR-017 for version pins and deviations (ESM backend, TypeScript 6, ESLint 9, OpenAPI deferred to Phase 2, local S3 deferred to Phase 3).
 
