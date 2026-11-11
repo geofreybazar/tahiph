@@ -14,8 +14,8 @@ TAHI.ph ("tahi" — Filipino for *stitch / sew*) is a multi-tenant SaaS platform
 ## 2. Business model
 
 - Subscription SaaS. Each registered business is a **tenant**.
-- Plans differ by staff seats, storage, modules, custom domain and (possibly) platform fee rate on online customer payments.
-- TAHI's revenue: subscriptions (and optionally an application fee on online customer payments — see open question Q7).
+- Plans differ by staff seats, storage, modules and custom domain.
+- **TAHI's only revenue is tenant subscriptions.** TAHI takes no commission or fee on tenants' sales. Customer payments belong entirely to the tenant.
 - The TAHI platform owner operates all tenants from a Super Admin interface.
 
 ## 3. Interfaces
@@ -143,10 +143,10 @@ Priority: **M** = MVP (first sellable release), **S** = soon after, **L** = late
 | Q1 | Are appointments booked per staff member, per atelier (single calendar), or per room/capacity? | Appointment schema, exclusion constraint | Per staff member, with an optional "any available staff" mode |
 | Q2 | Measurement units: cm, inches, or per tenant? Fractional inches (1/8)? | Measurement storage | Per-tenant default unit. Values stored as `Decimal(7,2)` in the recorded unit, with the unit stored on each record. |
 | Q3 | MVP scope and target launch date | Roadmap | MVP = modules marked **M** |
-| Q4 | Plan tiers and limits (seats, storage, custom domain, fee %) | `SubscriptionPlan`, `PlanFeature` | Data-driven limits; values TBD |
+| Q4 | Plan tiers and limits (seats, storage, custom domain, online payments) | `SubscriptionPlan`, `PlanFeature` | Data-driven limits; values TBD |
 | Q5 | English only, or English + Filipino? | i18n | English, i18n-ready |
 | Q6 | Self-serve tenant sign-up, or admin approval? | Onboarding | Self-serve sign-up → `PENDING_APPROVAL` → admin approves (configurable) |
-| Q7 | Does TAHI take a platform fee on online customer payments? | Payments, ledger C | Supported in design; 0% by default |
+| Q7 | ~~Does TAHI take a platform fee on online customer payments?~~ | — | **Answered 2026-11-11: No.** Subscriptions are TAHI's only revenue. |
 | Q8 | Customer accounts: is a passwordless email OTP acceptable? SMS OTP? | Customer auth | Email OTP / magic link; SMS later |
 | Q9 | Do ateliers need multi-branch support (several locations)? | Tenant model | Single location; `Location` entity deferred |
 | Q10 | Inventory of fabric/materials (stock levels)? | New module | Out of scope; options only |

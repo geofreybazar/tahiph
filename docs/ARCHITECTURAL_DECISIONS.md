@@ -33,15 +33,16 @@
 
 ## ADR-004 — PayMongo Platforms for tenant customer payments *(PO-confirmed, pending provider verification)*
 **Status:** Proposed. Becomes Accepted once PayMongo questions P1–P9 are answered.
-**Context:** Tenant customer money must belong to tenants. PayMongo publicly documents child accounts (Accounts API), split payments and platform fees.
+**Context:** Tenant customer money must belong to tenants. TAHI's only revenue is subscriptions; it takes **no cut of tenant sales** (PO decision, 2026-11-11). PayMongo publicly documents child accounts (Accounts API) and split payments.
 **Decision:**
 - Each tenant becomes a PayMongo child account under TAHI's platform account.
-- Payments are split to the child, with an optional TAHI fee.
+- 100% of each payment routes to the child account. PayMongo's platform-fee feature is not used.
 - Fallback: the tenant supplies its own PayMongo keys (encrypted).
 - Manual payments are always available.
 **Consequences:**
 - TAHI is not the merchant of record for tenant sales.
-- Platform fees form a third ledger (C).
+- Exactly two ledgers: SaaS subscriptions (TAHI) and customer payments (tenant).
+- Because TAHI earns nothing on these payments, Platforms is a cost purely for onboarding convenience. If its pricing is high, OWN_KEYS becomes the primary mode (question P10).
 - Dependent on PayMongo approval and child KYC feasibility for small ateliers.
 
 ## ADR-005 — Shared schema multi-tenancy with layered isolation

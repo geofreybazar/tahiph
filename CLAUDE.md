@@ -10,7 +10,7 @@ Read `docs/` before working on any area. Key docs:
 - `docs/MULTI_TENANCY.md`: **mandatory** isolation rules
 - `docs/AUTHENTICATION_AND_AUTHORIZATION.md`: realms, sessions, permissions
 - `docs/DATABASE_DESIGN.md`, `docs/DATABASE_ERD.md`
-- `docs/PAYMENT_ARCHITECTURE.md`: three separate ledgers
+- `docs/PAYMENT_ARCHITECTURE.md`: two separate ledgers
 - `docs/API_STANDARDS.md`: module layout, response envelope, errors
 - `docs/ARCHITECTURAL_DECISIONS.md`: ADRs. Add a new ADR for any significant change.
 
@@ -26,7 +26,7 @@ Read `docs/` before working on any area. Key docs:
 3. Every tenant table needs `tenant_id`, `UNIQUE(tenant_id,id)`, composite FKs, tenant-leading indexes and an enabled + forced RLS policy.
 4. Foreign-tenant ids return **404**. Add cross-tenant tests for every new route.
 5. Money is `numeric(12,2)` + currency, sent as strings. No floats. Timestamps are `timestamptz` UTC.
-6. Never mix ledgers: SaaS billing (TAHI) vs tenant customer payments vs platform fees.
+6. Never mix ledgers: SaaS subscriptions (TAHI's only revenue) vs tenant customer payments (100% the tenant's). TAHI takes no cut of tenant sales.
 7. Measurements are immutable revisions; order items keep snapshots.
 8. Routes are deny-by-default: each needs `@Realm()` plus either `@RequirePermission()` or `@Public()`.
 9. No secrets in git. Only `.env.example` with placeholders.

@@ -72,7 +72,7 @@ Host-based tenant resolution; theming; sections; portfolio, collections, testimo
 ## Phase 6 — Financial & subscription management
 **Prerequisite:** PayMongo answers P1–P9 (see `PAYMENT_ARCHITECTURE.md` §7).
 
-Plans and features; subscriptions; billing engine jobs; SaaS invoices and checkout; PayMongo provider adapter; webhook ingress (idempotent); tenant merchant onboarding (child accounts or the OWN_KEYS fallback); online customer payments; split/fee ledger; refunds via provider; reconciliation jobs; financial reports per ledger.
+Plans and features; subscriptions; billing engine jobs; SaaS invoices and checkout; PayMongo provider adapter; webhook ingress (idempotent); tenant merchant onboarding (child accounts or the OWN_KEYS fallback); online customer payments (100% to the tenant); refunds via provider; reconciliation jobs; financial reports per ledger.
 
 **Exit criteria:**
 - Webhook replay and duplicate tests pass.

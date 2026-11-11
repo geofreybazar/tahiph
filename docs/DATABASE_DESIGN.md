@@ -39,10 +39,10 @@
 | `Role` | Tenant roles | tenantId, key, name, isSystem. `UNIQUE(tenant_id,key)` |
 | `RolePermission` | Role → permission string | (roleId, permission) PK |
 | `SubscriptionPlan` | Plan catalogue | code, name, monthlyPrice, annualPrice, currency, trialDays, isActive |
-| `PlanFeature` | Limits/flags per plan | planId, key (`staff_seats`, `storage_gb`, `custom_domain`, `online_payments`, `platform_fee_bps`), value |
+| `PlanFeature` | Limits/flags per plan | planId, key (`staff_seats`, `storage_gb`, `custom_domain`, `online_payments`), value |
 | `Subscription` | Tenant's subscription | tenantId (unique while active), planId, interval, status (`TRIALING`/`ACTIVE`/`PAST_DUE`/`CANCELLED`/`EXPIRED`), currentPeriodStart/End, trialEndsAt, cancelAt |
 | `SubscriptionInvoice` | TAHI → tenant invoice | subscriptionId, number, amount, tax, status (`DRAFT`/`OPEN`/`PAID`/`VOID`/`UNCOLLECTIBLE`), dueAt, paidAt, line items snapshot |
-| `PlatformTransaction` | TAHI ledger | type (`SUBSCRIPTION_PAYMENT`/`APPLICATION_FEE`/`REFUND`), amount, provider, providerRef (unique), invoiceId?, relatedTenantPaymentId?, status |
+| `PlatformTransaction` | TAHI ledger | type (`SUBSCRIPTION_PAYMENT`/`REFUND`), amount, provider, providerRef (unique), invoiceId, status. **Subscription revenue only**; never references tenant customer payments |
 | `WebhookEvent` | Inbound provider events | provider, eventId, `UNIQUE(provider,event_id)`, accountScope (`PLATFORM`/`TENANT`), tenantId?, payload, receivedAt, processedAt, status |
 | `AuditLog` | Platform audit | actorType, actorId, action, targetType, targetId, tenantId?, ip, metadata, createdAt (append-only) |
 | `PlatformSetting`, `Announcement`, `SupportTicket` | Phase 7 | — |
@@ -100,7 +100,7 @@
 
 **Payments (tenant ledger)**
 - `OrderPayment`: orderId, kind (`DOWN_PAYMENT`/`PARTIAL`/`INSTALLMENT`/`FINAL`), amount, method (`CASH`/`GCASH`/`MAYA`/`BANK_TRANSFER`/`CARD`/`ONLINE`), status (`PENDING`/`SUCCEEDED`/`FAILED`), receivedAt, recordedBy, proofAttachmentId?, receiptNumber, `paymentTransactionId?`
-- `PaymentTransaction`: provider-side record for online payments. provider, providerPaymentId (unique), checkoutId, amount, fee, net, status, raw.
+- `PaymentTransaction`: provider-side record for online payments. provider, providerPaymentId (unique), checkoutId, amount, providerFee (PayMongo's processing fee, borne by the tenant), net, status, raw.
 - `Refund`: orderPaymentId, amount, reason, status, providerRefundId?
 - `InstallmentPlan` / `InstallmentDue`: optional schedule (S priority)
 - `TenantMerchantAccount`: provider, mode (`PLATFORM_CHILD`/`OWN_KEYS`), providerAccountId, encryptedCredentials?, status, capabilities (jsonb)

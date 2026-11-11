@@ -118,7 +118,7 @@ erDiagram
   PRODUCTION_JOB { uuid id PK  uuid order_item_id UK  uuid current_stage_id FK  date due_date }
   PRODUCTION_STAGE { uuid id PK  uuid workflow_id FK  string name  int sort_order  enum kind }
   ORDER_PAYMENT { uuid id PK  uuid order_id FK  enum kind  enum method  numeric amount  enum status  string receipt_number }
-  PAYMENT_TRANSACTION { uuid id PK  string provider  string provider_payment_id UK  numeric amount  numeric fee  enum status }
+  PAYMENT_TRANSACTION { uuid id PK  string provider  string provider_payment_id UK  numeric amount  numeric provider_fee  enum status }
   REFUND { uuid id PK  uuid order_payment_id FK  numeric amount  enum status }
 ```
 

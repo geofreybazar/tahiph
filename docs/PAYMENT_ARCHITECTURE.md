@@ -6,17 +6,17 @@
 >
 > PayMongo Platforms capabilities below come from public PayMongo documentation and **must be confirmed with PayMongo** before implementation (section 7).
 
-## 1. Three ledgers, never mixed
+## 1. Two ledgers, never mixed
 
 | Ledger | Money flows | Owner | Tables | Provider account |
 |---|---|---|---|---|
 | **A. SaaS subscriptions** | Tenant → TAHI | TAHI | `Subscription`, `SubscriptionInvoice`, `PlatformTransaction(type=SUBSCRIPTION_PAYMENT)` | TAHI's own PayMongo merchant account |
 | **B. Customer payments** | Customer → Tenant | Tenant | `OrderPayment`, `PaymentTransaction`, `Refund` (all tenant-scoped, RLS) | Tenant's **PayMongo child account** under TAHI's Platforms account (or the tenant's own keys as fallback), or manual |
-| **C. Platform fees** (optional, Q7) | Split from B → TAHI | TAHI | `PlatformTransaction(type=APPLICATION_FEE)` with `relatedTenantPaymentId` | Same as B (split) |
 
 Rules:
-- Ledger B rows never appear in TAHI revenue reports. Ledger A/C rows never appear in tenant reports.
-- Ledger C references ledger B by id but is stored in the platform ledger. Tenants see the fee as a deduction on their payout statement.
+- **TAHI's only revenue is tenant subscriptions (ledger A).** TAHI takes **no cut, commission or application fee** on tenant sales (decided 2026-11-11). 100% of every customer payment (minus PayMongo's own processing fees) belongs to the tenant.
+- Ledger B rows never appear in TAHI revenue reports. Ledger A rows never appear in tenant reports.
+- No code path may move money from ledger B into TAHI's accounts. There is no `APPLICATION_FEE` transaction type.
 - Reconciliation jobs run per ledger.
 
 ## 2. Ledger A — SaaS billing (TAHI-owned engine)
@@ -49,7 +49,7 @@ These are the dominant real-world flow: cash, GCash/Maya transfer, bank transfer
 From PayMongo's public docs:
 - A parent (platform) account can create **child accounts** through the Accounts API.
 - Child activation requires business details (trade name, address, TIN).
-- Payments can be **split** across connected accounts, with an optional platform fee.
+- Payments can be **split** across connected accounts, and the parent can optionally take a platform fee. **TAHI does not use the fee feature**: the full amount routes to the tenant's child account.
 - Each parent–child relationship has an authorization toggle.
 
 **Onboarding (per tenant):**
@@ -66,14 +66,13 @@ Owner → "Enable online payments"
 Customer clicks "Pay balance" on storefront order page
   → API validates order, amount ≤ balance
   → PaymentTransaction(PENDING) + idempotency key = hash(orderId, amount, attempt)
-  → PayMongo checkout session created for child account, split: tenant = amount − fee, TAHI = fee
+  → PayMongo checkout session created on behalf of the child account; 100% of the amount routes to the tenant (no TAHI fee)
   → redirect → customer pays (GCash / Maya / card / QR Ph / online banking per capabilities)
   → webhook payment.paid → (see §4) → OrderPayment(SUCCEEDED, method=ONLINE)
-       + PlatformTransaction(APPLICATION_FEE) if fee > 0
   → customer redirected to success page, which **polls status**; the redirect itself is never trusted
 ```
 
-**Fallback (if Platforms is not approved for TAHI):** `mode=OWN_KEYS`. The tenant pastes their own PayMongo secret key and webhook secret. These are encrypted with AES-256-GCM, never returned to the client, and rotatable. Ledger C is then unavailable.
+**Fallback (if Platforms is not approved for TAHI):** `mode=OWN_KEYS`. The tenant pastes their own PayMongo secret key and webhook secret. These are encrypted with AES-256-GCM, never returned to the client, and rotatable. Since TAHI takes no fee, this mode is functionally equivalent for tenants. The difference is onboarding UX: the tenant manages their own PayMongo account.
 
 ## 4. Webhook handling (both ledgers)
 
@@ -114,14 +113,14 @@ Domain services (`BillingService`, `PaymentsService`) depend on the interface, n
 
 ## 6. Refunds and reconciliation
 
-- **Refunds:** `Refund(PENDING)`, then a provider call, then a webhook marks it `SUCCEEDED`/`FAILED`. Manual refunds are recorded directly. Refunds require `payments.refund` and the total cannot exceed the payment amount (checked under row lock). Fee reversal on split refunds is TBC with PayMongo.
+- **Refunds:** `Refund(PENDING)`, then a provider call, then a webhook marks it `SUCCEEDED`/`FAILED`. Manual refunds are recorded directly. Refunds require `payments.refund` and the total cannot exceed the payment amount (checked under row lock).
 - **Reconciliation:** a daily worker job per ledger and per merchant account lists provider payments for the previous day and compares them with local records:
   - missing locally → alert, then fetch and apply;
   - amount mismatch → alert;
   - stuck PENDING > 24 h → poll the provider.
 
   Results are stored in a `ReconciliationRun` (Phase 6).
-- **Audit:** every payment state change writes to `TenantAuditLog` (B) or `AuditLog` (A/C).
+- **Audit:** every payment state change writes to `TenantAuditLog` (B) or `AuditLog` (A).
 
 ## 7. Open items to confirm with PayMongo (before Phase 6)
 
@@ -131,11 +130,12 @@ Domain services (`BillingService`, `PaymentsService`) depend on the interface, n
 | P2 | Child KYC requirements: can sole proprietors with DTI registration, or unregistered home-based ateliers, onboard? |
 | P3 | Is KYC hosted by PayMongo, or must TAHI collect documents? (TAHI collecting IDs increases DPA obligations.) |
 | P4 | Are child-account payment events delivered to the parent's webhook? Is there an account identifier on events? |
-| P5 | Split mechanics: fixed fee vs percentage; who bears provider fees; are splits possible on all methods (GCash, Maya, cards, QR Ph)? |
-| P6 | Refunds on split payments: is the platform fee reversed automatically? |
+| P5 | Can a payment be created on behalf of a child account with 100% routed to the child (no parent fee)? Who bears PayMongo's processing fees (child, as expected)? Are all methods (GCash, Maya, cards, QR Ph) supported for child accounts? |
+| P6 | Refunds on child-account payments: initiated by the parent via API, or only by the child? |
 | P7 | Settlement/payout schedule to child accounts; payout reports API? |
 | P8 | Chargeback/dispute liability between parent and child |
 | P9 | Does PayMongo offer recurring billing that would simplify ledger A? (The design does not depend on it.) |
+| P10 | Since TAHI earns nothing from tenant payments, does Platforms pricing (custom/enterprise) justify itself over tenants connecting their own accounts (OWN_KEYS)? Decide after the quote. |
 
 ## 8. Security
 
