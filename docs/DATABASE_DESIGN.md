@@ -1,6 +1,6 @@
 # Database Design — TAHI.ph
 
-> **Status:** Proposed (Phase 0). **No Prisma schema exists yet.** The schema will be written only after this design and `DATABASE_ERD.md` are reviewed and approved.
+> **Status:** Approved (Phase 0). **Implemented:** the Phase 2 identity and tenancy slice (`packages/database/prisma/schema.prisma`, migration `0002_identity_tenancy`), with refinements recorded in ADR-019. Everything else is planned.
 
 ## 1. Conventions
 

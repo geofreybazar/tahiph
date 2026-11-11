@@ -45,6 +45,12 @@ Read `docs/` before working on any area. Key docs:
 - `npm run test:int`: API integration tests (needs `DATABASE_URL` + `REDIS_URL`).
 - `npm run db:migrate:dev | db:migrate:deploy | db:generate`: Prisma (`packages/database`).
 
+## Tenancy conventions (ADR-018, ADR-019)
+- Services inject `TENANT_DB` and call `db()` (never hold a client). Use `withTenantTx(fn)` for multi-statement units of work; no external I/O inside it.
+- New tenant model: add it to `packages/database/src/tenancy/tenant-models.ts`, add the RLS SQL (`app_tenant_id()` policy, ENABLE + FORCE) to its migration, and use unchecked inputs (`tenantId` scalar). The RLS integration test fails otherwise.
+- Routes: `@Realm()` plus `@Public()`, `@Authenticated()` or `@RequirePermission()`. The API won't start otherwise.
+- Integration tests run as a non-superuser, non-BYPASSRLS role. Use `apps/api/test/fixtures.ts` (unique data, no cleanup).
+
 ## Conventions
 - **ESM everywhere** (NestJS 12 is ESM-only). Use relative imports with a `.js` suffix in TS sources.
 - **Versions are pinned exactly.** See ADR-014 before upgrading (TypeScript is held at 6.0.x and ESLint at 9.x for plugin compatibility).

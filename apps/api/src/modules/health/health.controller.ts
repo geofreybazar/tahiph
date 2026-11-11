@@ -1,4 +1,5 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
+import { Public, Realm } from '../../core/auth/decorators.js';
 import { ServiceUnavailableError } from '../../core/http/domain-error.js';
 import { HealthService, type HealthReport } from './health.service.js';
 
@@ -8,6 +9,8 @@ import { HealthService, type HealthReport } from './health.service.js';
  * checks and deploy verification (docs/DEPLOYMENT.md §5).
  */
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
+@Realm('internal')
+@Public()
 export class HealthController {
   constructor(private readonly health: HealthService) {}
 

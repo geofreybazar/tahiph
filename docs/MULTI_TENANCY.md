@@ -1,6 +1,6 @@
 # Multi-Tenancy — TAHI.ph
 
-> **Status:** Proposed (Phase 0). Implementation planned for Phase 2.
+> **Status:** Phase 2 in progress. **Implemented:** layers 1–4 for the identity and tenancy tables, the scoped client (`packages/database/src/tenancy`), the access guard and the RLS test suite (ADR-018, ADR-019).
 
 ## 1. Model
 
@@ -29,7 +29,7 @@ Plus **automated cross-tenant tests** in CI (section 7).
 
 ## 3. Tenant resolution
 
-A single `TenantResolutionMiddleware` (runs before guards) produces a `RequestContext`:
+The global `AccessGuard` (`apps/api/src/core/auth/access.guard.ts`) resolves the realm and tenant and fills the CLS `RequestContext` (`apps/api/src/core/context/request-context.ts`). It runs in the guard, not in middleware, because it needs the route's realm metadata. In outline:
 
 ```ts
 type RequestContext = {
@@ -46,7 +46,7 @@ type RequestContext = {
 | Realm | Host | How `tenantId` is determined |
 |---|---|---|
 | tenant | `app.tahi.ph` | From the session's `activeMembershipId`. The membership must be `ACTIVE` and its tenant `ACTIVE`/`TRIAL`. Switching ateliers is `POST /api/v1/tenant/session/switch`, which re-validates the membership. |
-| public / customer | `{slug}.tahi.ph` or custom domain | `Host` → `TenantDomain(hostname)`, verified and active. Cached in Redis for 5 min and invalidated on change. Unknown host → 404. |
+| public / customer | `{slug}.tahi.ph` or custom domain | `Host` → `TenantDomain(hostname)`, verified, tenant online. One indexed lookup per request; not cached yet (ADR-019). Unknown host → 404. |
 | platform | `admin.tahi.ph` | None. Cross-tenant operations specify the tenant **in the URL** and pass a `platform.tenants.access` permission check plus an audit write. |
 
 - **Hard rule:** no DTO schema in `packages/validation` contains a `tenantId` field for tenant-realm endpoints. A lint rule enforces this.

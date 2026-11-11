@@ -23,6 +23,7 @@
 | R16 | **Local environment:** Docker not installed in WSL. Phase 1 Docker files are verified only in CI. | H | M | Enable Docker Desktop WSL integration or install Docker Engine; run `docker compose up -d` and the prod stack locally | 1 |
 | R17 | **ESLint 9 is end-of-support**, but Next's lint plugins don't support ESLint 10 yet. | H | L | Lint-time only (no runtime exposure). Upgrade once `eslint-config-next` supports 10 (Renovate). | 1→ |
 | R18 | **`npm audit`: 7 moderate findings**, all one `minimatch` ReDoS reached via `typescript-eslint` (lint tooling; never in runtime images). | M | L | The CI gate fails on high/critical only. Update when typescript-eslint ships a fixed transitive version. | 1→ |
+| R19 | **Undocumented Prisma internal** (`__internalParams.transaction.kind`) is used to detect a client captured outside `withTenantTx`. | L | M | Fails closed: if a Prisma upgrade removes it, every in-transaction query throws and the integration suite fails. Versions are pinned (ADR-014). | 2→ |
 
 ## Potential bottlenecks (to monitor)
 

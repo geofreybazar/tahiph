@@ -21,7 +21,8 @@
     "format:check": "prettier --check .",
     "db:generate": "npm run generate -w @tahi/database",
     "db:migrate:dev": "npm run migrate:dev -w @tahi/database",
-    "db:migrate:deploy": "npm run migrate:deploy -w @tahi/database"
+    "db:migrate:deploy": "npm run migrate:deploy -w @tahi/database",
+    "db:drift": "npm run drift -w @tahi/database"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

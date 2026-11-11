@@ -21,6 +21,9 @@ x-api-env: &api-env
   REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379/0
   # Express sees Traefik as the only hop; Traefik itself only trusts Cloudflare ranges.
   TRUST_PROXY: '1'
+  APP_HOST: app.tahi.ph
+  ADMIN_HOST: admin.tahi.ph
+  API_HOST: api.tahi.ph
 
 services:
   traefik:

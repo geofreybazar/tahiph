@@ -1,0 +1,17 @@
+/**
+ * Tenant-owned models and their tables. The scoped client stamps and filters tenantId on
+ * these models; each table has an enabled + forced RLS policy. An integration test fails if
+ * this map and the database's RLS-protected tables differ.
+ */
+export const TENANT_MODELS = {
+  Role: 'role',
+  RolePermission: 'role_permission',
+  TenantMembership: 'tenant_membership',
+  TenantAuditLog: 'tenant_audit_log',
+} as const;
+
+export type TenantModel = keyof typeof TENANT_MODELS;
+
+export function isTenantModel(model: string | undefined): model is TenantModel {
+  return model !== undefined && Object.hasOwn(TENANT_MODELS, model);
+}

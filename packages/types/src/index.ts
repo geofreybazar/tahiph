@@ -19,3 +19,5 @@ export interface ApiSuccess<T, M = undefined> {
   data: T;
   meta?: M;
 }
+
+export * from './permissions.js';

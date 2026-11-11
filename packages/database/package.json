@@ -22,7 +22,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "migrate:status": "prisma migrate status"
+    "migrate:status": "prisma migrate status",
+    "test": "vitest run",
+    "drift": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

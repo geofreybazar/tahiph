@@ -2,12 +2,11 @@ import { Global, Inject, Module, type OnApplicationShutdown } from '@nestjs/comm
 import { createPrismaClient, type DatabaseClient } from '@tahi/database';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { TENANT_DB, tenantDatabaseProvider } from './tenant-database.provider.js';
+import { UNSCOPED_PRISMA } from './tokens.js';
 
-/**
- * Base (unscoped) Prisma client. Phase 2 adds the tenant-scoped client and restricts this
- * token to allow-listed modules (docs/MULTI_TENANCY.md §4).
- */
-export const UNSCOPED_PRISMA = Symbol('UNSCOPED_PRISMA');
+export { TENANT_DB } from './tenant-database.provider.js';
+export { UNSCOPED_PRISMA } from './tokens.js';
 
 @Global()
 @Module({
@@ -18,8 +17,9 @@ export const UNSCOPED_PRISMA = Symbol('UNSCOPED_PRISMA');
       useFactory: (env: Env): DatabaseClient =>
         createPrismaClient({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX }),
     },
+    tenantDatabaseProvider,
   ],
-  exports: [UNSCOPED_PRISMA],
+  exports: [UNSCOPED_PRISMA, TENANT_DB],
 })
 export class DatabaseModule implements OnApplicationShutdown {
   constructor(@Inject(UNSCOPED_PRISMA) private readonly prisma: DatabaseClient) {}

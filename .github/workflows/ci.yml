@@ -52,7 +52,8 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
-      DATABASE_URL: postgresql://postgres:ci-only-password@localhost:5432/tahi
+      # The suite runs as the least-privilege app role, so RLS is really enforced.
+      DATABASE_URL: postgresql://tahi_app:ci-app@localhost:5432/tahi
       REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,22 +62,29 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-fund
-      - name: Apply migrations
-        run: npm run db:migrate:deploy
-      - name: Verify role bootstrap script
+      - name: Create database roles (same script as the Postgres container)
         env:
+          PGHOST: localhost
           PGPASSWORD: ci-only-password
+          POSTGRES_USER: postgres
+          POSTGRES_DB: tahi
           TAHI_OWNER_PASSWORD: ci-owner
           TAHI_APP_PASSWORD: ci-app
         run: |
-          createdb -h localhost -U postgres tahi_roles_check
-          POSTGRES_USER=postgres POSTGRES_DB=tahi_roles_check PGHOST=localhost \
-            sh infrastructure/postgres/init/01-roles.sh
-          psql -h localhost -U postgres -d tahi_roles_check -Atc \
+          sh infrastructure/postgres/init/01-roles.sh
+          psql -U postgres -d tahi -Atc \
             "select rolname, rolsuper, rolbypassrls from pg_roles where rolname like 'tahi_%' order by 1" \
             | tee /tmp/roles.txt
           grep -qx 'tahi_app|f|f' /tmp/roles.txt
           grep -qx 'tahi_owner|f|f' /tmp/roles.txt
+      - name: Apply migrations (owner role)
+        env:
+          DATABASE_URL: postgresql://tahi_owner:ci-owner@localhost:5432/tahi
+        run: npm run db:migrate:deploy
+      - name: Check schema drift (migrations vs schema.prisma)
+        env:
+          DATABASE_URL: postgresql://tahi_owner:ci-owner@localhost:5432/tahi
+        run: npm run drift -w @tahi/database
       - run: npx turbo run test:int
 
   docker:

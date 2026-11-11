@@ -1,6 +1,6 @@
 # Authentication & Authorization — TAHI.ph
 
-> **Status:** Proposed (Phase 0). Implementation planned for Phase 2.
+> **Status:** Phase 2 in progress. **Implemented:** sessions (`SessionService`), the global access guard, decorators and the permission catalogue (`packages/types/src/permissions.ts`); see ADR-019. **Planned:** login, registration, reset, invitations, MFA and customer OTP flows; CSRF.
 > **Decision:** opaque server-side sessions (ADR-002). JWTs are not used for browser auth.
 
 ## 1. Realms
@@ -22,7 +22,7 @@ The three realms are completely separate authentication boundaries: different id
 | Property | Value |
 |---|---|
 | Token | 32 random bytes (`crypto.randomBytes`), base64url, sent only in the cookie |
-| Storage | `Session.tokenHash = SHA-256(token)`. The raw token is never stored. Redis caches `tokenHash → session` for 60s. |
+| Storage | `Session.tokenHash = SHA-256(token)`. The raw token is never stored. Looked up in PostgreSQL by unique index; no Redis cache for now (ADR-019). |
 | Cookie | `__Host-` prefix, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, no `Domain` attribute |
 | Lifetime: staff | Sliding 7 days idle, absolute 30 days |
 | Lifetime: admin | Sliding 30 min idle, absolute 12 h |
@@ -158,7 +158,7 @@ Guard order:
 3. `PermissionGuard`: check the permission set, cached per session.
 4. Resource-level policies in services, e.g. a Tailor with only `production.read_assigned` sees only jobs with their `WorkAssignment`; staff can't refund.
 
-Routes are **deny by default**: a global guard rejects any route lacking `@Realm()` and either `@RequirePermission()` or `@Public()`.
+Routes are **deny by default**: a global guard rejects any route lacking `@Realm()` and one of `@Public()`, `@Authenticated()` or `@RequirePermission()`, and the API refuses to start if such a route exists (ADR-019). A route on the wrong host returns 404.
 
 ### 7.4 Platform permissions
 `platform.tenants.read`, `platform.tenants.manage`, `platform.tenants.access_data` (view tenant business data; requires a reason and is audited), `platform.billing.*`, `platform.settings`, `platform.admins.manage` (Super Admin only), `platform.support.*`.

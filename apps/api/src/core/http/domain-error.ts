@@ -38,3 +38,15 @@ export class ServiceUnavailableError extends DomainError {
     super('SERVICE_UNAVAILABLE', message, HttpStatus.SERVICE_UNAVAILABLE, details);
   }
 }
+
+export class UnauthenticatedError extends DomainError {
+  constructor(message = 'Authentication is required.') {
+    super('UNAUTHENTICATED', message, HttpStatus.UNAUTHORIZED);
+  }
+}
+
+export class ForbiddenError extends DomainError {
+  constructor(code = 'FORBIDDEN', message = 'You do not have permission to perform this action.') {
+    super(code, message, HttpStatus.FORBIDDEN);
+  }
+}

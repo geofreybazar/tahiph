@@ -52,6 +52,13 @@ Work items:
 - Customer OTP login (storefront realm).
 - **Cross-tenant test suite** + RLS checks in CI.
 
+**Progress:**
+- [x] RLS spike (ADR-018).
+- [x] Tenancy core on `feat/tenancy-core`: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). In review.
+- [ ] Staff auth (`feat/staff-auth`)
+- [ ] Platform auth (`feat/platform-auth`)
+- [ ] Customer auth (`feat/customer-auth`)
+
 **Exit criteria:**
 - Cross-tenant suite passes for every route.
 - RLS check passes for every tenant table.

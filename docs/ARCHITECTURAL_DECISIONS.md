@@ -170,3 +170,27 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - Overhead is about 2.3 ms per five-operation request locally. On the VPS the Docker network adds about 0.1 ms per extra round trip (15 per request). That is acceptable at the planned scale (hundreds of tenants, low request rates), and the system has 3× headroom over baseline on a laptop.
 - Re-benchmark with k6 on the VPS in Phase 8. PgBouncer in transaction mode stays compatible, because the setting is transaction-local.
 - Not measured: the TCP path, and the non-owner `tahi_app` role. The spike ran as the table owner with `FORCE ROW LEVEL SECURITY`, which applies the same policies. The Phase 2 integration suite covers `tahi_app` in CI.
+
+## ADR-019 — Tenancy core: no Redis caching yet; access guard and schema refinements
+**Status:** Proposed (2026-11-11, branch `feat/tenancy-core`)
+**Context:** Phase 2 implements tenant resolution, sessions and access control. The Phase 0 docs planned Redis caches: sessions for 60 s, Host → tenant for 5 min.
+**Decision:**
+1. **No Redis caching for sessions or TenantDomain for now.** Each request does one lookup by unique index in PostgreSQL (well under 1 ms). A cache would add a revocation window: a revoked session could stay valid until the cache entry expires or the delete reaches Redis. Revisit with k6 numbers in Phase 8.
+2. **One global `AccessGuard`** does deny-by-default, realm ↔ Host matching, storefront tenant resolution, session validation and permission checks. A boot-time `RouteAccessAudit` refuses to start the API if any route lacks `@Realm()` plus `@Public()`, `@Authenticated()` or `@RequirePermission()`.
+   - `@Authenticated()` (new) is for routes that need a session but no tenant permission, e.g. "who am I" and onboarding.
+   - `@AllowMfaPending()` (new) is for the platform MFA endpoints.
+3. **A realm mismatch returns 404**, e.g. a tenant route on the admin host. The route does not exist on that host.
+4. **Tenant lifecycle (interim):** staff get a tenant context only when the membership is `ACTIVE` and the tenant is `TRIAL`, `ACTIVE` or `PAST_DUE`. Otherwise permission routes return `403 NO_ACTIVE_TENANT`. The read-only `SUSPENDED` mode and billing-only access arrive with tenant lifecycle work (Phase 6/7). Storefronts resolve only verified domains of online tenants.
+5. **Schema refinements to `DATABASE_DESIGN.md`:**
+   - `Session` adds:
+     - `tenantId` for staff, the active membership's tenant. It is checked against the membership through RLS, so a mismatched pair yields no tenant context.
+     - `absoluteExpiresAt`.
+     - `mfaVerifiedAt`.
+   - `RolePermission` carries `tenant_id` (RLS, and a composite FK to `role`).
+   - Read-only RLS policies `user_own_memberships` and `user_membership_roles` let a user list their own memberships before choosing a tenant (`withUserScope`).
+   - `audit_log` and `tenant_audit_log` are append-only via triggers. These block UPDATE, DELETE and TRUNCATE for every role.
+6. **Static checks run as unit tests:**
+   - `UNSCOPED_PRISMA` is used only in allow-listed directories;
+   - `@tahi/validation` contains no `tenantId`;
+   - the RLS table set must equal `TENANT_MODELS`.
+**Consequences:** Fewer moving parts, and revocation takes effect immediately. CSRF (Origin check plus double-submit token) lands with the staff-auth branch, which introduces the first cookie-setting, state-changing routes.

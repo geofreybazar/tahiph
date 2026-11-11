@@ -4,12 +4,21 @@ import { InvalidEnvironmentError, loadEnv } from './env.js';
 const valid = {
   DATABASE_URL: 'postgresql://tahi_app:pw@localhost:5432/tahi',
   REDIS_URL: 'redis://:pw@localhost:6379/0',
+  APP_HOST: 'app.tahi.ph',
+  ADMIN_HOST: 'admin.tahi.ph',
+  API_HOST: 'api.tahi.ph',
 };
 
 describe('loadEnv', () => {
   it('applies defaults for optional values', () => {
     const env = loadEnv(valid);
     expect(env).toMatchObject({ NODE_ENV: 'development', API_PORT: 3000, LOG_LEVEL: 'info' });
+  });
+
+  it('rejects hosts with a scheme, port or upper case', () => {
+    for (const APP_HOST of ['https://app.tahi.ph', 'app.tahi.ph:443', 'App.tahi.ph']) {
+      expect(() => loadEnv({ ...valid, APP_HOST })).toThrow(InvalidEnvironmentError);
+    }
   });
 
   it('coerces numeric strings', () => {
