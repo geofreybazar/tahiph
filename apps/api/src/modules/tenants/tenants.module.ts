@@ -30,6 +30,6 @@ import {
     TenantSettingsService,
     RolesService,
   ],
-  exports: [TenantSettingsService],
+  exports: [TenantSettingsService, StaffService],
 })
 export class TenantsModule {}

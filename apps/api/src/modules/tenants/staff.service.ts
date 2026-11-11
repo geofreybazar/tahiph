@@ -48,6 +48,34 @@ export class StaffService {
     return rows.map(toMember);
   }
 
+  /** A member of this atelier; another atelier's membership is not found (404). */
+  async member(membershipId: string) {
+    const m = await this.tenantDb.db().tenantMembership.findFirst({
+      where: { id: membershipId },
+      select: MEMBER_SELECT,
+    });
+    if (!m) throw new NotFoundError('Staff member not found.');
+    return toMember(m);
+  }
+
+  /** A member who can be given work now (appointments, assignments). */
+  async activeMember(membershipId: string) {
+    const m = await this.member(membershipId);
+    if (m.status !== 'ACTIVE') {
+      throw new DomainError('STAFF_INACTIVE', 'This staff member is not active.');
+    }
+    return m;
+  }
+
+  async activeMembers() {
+    const rows = await this.tenantDb.db().tenantMembership.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+      select: MEMBER_SELECT,
+    });
+    return rows.map(toMember);
+  }
+
   /**
    * Changes a member's role or status. Nobody changes their own membership or the owner's,
    * and nobody is given the owner role (ownership is transferred, not assigned).

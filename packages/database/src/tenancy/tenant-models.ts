@@ -21,6 +21,10 @@ export const TENANT_MODELS = {
   MeasurementField: 'measurement_field',
   MeasurementRecord: 'measurement_record',
   MeasurementValue: 'measurement_value',
+  AppointmentType: 'appointment_type',
+  StaffAvailability: 'staff_availability',
+  StaffTimeOff: 'staff_time_off',
+  Appointment: 'appointment',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

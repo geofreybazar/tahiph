@@ -81,6 +81,8 @@
 - `StaffAvailability`: membershipId, weekly rules + exceptions
 - `Appointment`: clientId, typeId, staffMembershipId, startsAt, endsAt, status (`PENDING`/`CONFIRMED`/`COMPLETED`/`CANCELLED`/`NO_SHOW`), source (`DASHBOARD`/`STOREFRONT`), orderId?, rescheduledFromId?
 
+**Implemented (Phase 3, migration `0009_appointments`, ADR-028):** `AppointmentType`, `StaffAvailability` (weekly ranges), `StaffTimeOff` (exceptions) and `Appointment` with `blockedUntil` (end + buffer) and `cancelReason`. Not built: `orderId` (Phase 4) and `rescheduledFromId` (rescheduling moves in place).
+
 **Catalogue**
 - `Category`
 - `Product`: fixed price, ready-to-wear or made-to-measure
@@ -132,7 +134,7 @@ ALTER TABLE appointment ADD CONSTRAINT appointment_no_overlap
   ) WHERE (status IN ('PENDING','CONFIRMED'));
 ```
 - Half-open ranges allow back-to-back slots.
-- Buffers are applied by storing `ends_at` including the buffer, or a separate `blocked_until` column (finalized in Phase 3).
+- Buffers use a separate `blocked_until` column (implemented, ADR-028); the constraint ranges over `[starts_at, blocked_until)`.
 - The API maps SQLSTATE `23P01` to `409 APPOINTMENT_CONFLICT`.
 - Application-level slot computation is for UX only. The constraint is the source of truth.
 - Q1 answered: per staff member, so the constraint keeps `staff_membership_id`. "Any available staff" is resolved to a concrete staff member at booking time, inside the same transaction.

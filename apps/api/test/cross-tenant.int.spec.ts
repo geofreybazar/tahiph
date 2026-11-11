@@ -20,6 +20,7 @@ import type { RouteInfo } from '../src/core/http/route-inventory.js';
 import { AuthModule } from '../src/modules/auth/auth.module.js';
 import { PlatformModule } from '../src/modules/platform/platform.module.js';
 import { ClientsModule } from '../src/modules/clients/clients.module.js';
+import { AppointmentsModule } from '../src/modules/appointments/appointments.module.js';
 import { MeasurementsModule } from '../src/modules/measurements/measurements.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { Browser } from './browser.js';
@@ -42,6 +43,10 @@ type App = Parameters<typeof request>[0];
  * 2. for each reference, a request with the other atelier's id must return 404 and write
  *    nothing for that atelier, while the same request with the actor's own id must not 404.
  */
+
+/** Distinct future start times, so own-id bookings never collide with each other. */
+let slot = 0;
+const nextStart = () => new Date(Date.UTC(2031, 0, 1) + slot++ * 3 * 3600_000).toISOString();
 
 /** Valid request bodies apart from the referenced ids. Add one per referencing route. */
 const SAMPLES: Record<string, () => Record<string, unknown>> = {
@@ -71,6 +76,28 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'MeasurementsController.list': () => ({}),
   'MeasurementsController.create': () => ({ values: { chest: '96.5' } }),
   'MeasurementsController.record': () => ({}),
+  'AppointmentTypesController.update': () => ({ name: `Fitting ${suffix()}` }),
+  'AppointmentTypesController.archive': () => ({}),
+  'AppointmentTypesController.restore': () => ({}),
+  'StaffScheduleController.availability': () => ({}),
+  'StaffScheduleController.replaceAvailability': () => ({ ranges: [] }),
+  'StaffScheduleController.timeOff': () => ({}),
+  'StaffScheduleController.addTimeOff': () => ({
+    startsAt: '2032-01-01T00:00:00Z',
+    endsAt: '2032-01-01T01:00:00Z',
+  }),
+  'StaffScheduleController.deleteTimeOff': () => ({}),
+  'AppointmentsController.list': () => ({
+    from: '2031-01-01T00:00:00Z',
+    to: '2031-02-01T00:00:00Z',
+  }),
+  'AppointmentsController.slots': () => ({ date: '2031-06-02' }),
+  'AppointmentsController.get': () => ({}),
+  'AppointmentsController.create': () => ({ startsAt: nextStart() }),
+  'AppointmentsController.reschedule': () => ({ startsAt: nextStart() }),
+  'AppointmentsController.cancel': () => ({}),
+  'AppointmentsController.complete': () => ({}),
+  'AppointmentsController.noShow': () => ({}),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
     direction: 'INBOUND',
@@ -194,10 +221,45 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         });
         return r.id;
       });
+    const appointmentType = await asTenant(prisma, tenant.tenantId, (tx) =>
+      tx.appointmentType.create({
+        data: { tenantId: tenant.tenantId, name: 'Fitting', kind: 'FITTING', durationMinutes: 60 },
+      }),
+    );
+    const appointment = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const startsAt = new Date(nextStart());
+        const endsAt = new Date(startsAt.getTime() + 3600_000);
+        const a = await tx.appointment.create({
+          data: {
+            tenantId: tenant.tenantId,
+            clientId: client.id,
+            typeId: appointmentType.id,
+            staffMembershipId: colleague.id,
+            startsAt,
+            endsAt,
+            blockedUntil: endsAt,
+          },
+        });
+        return a.id;
+      });
+    const timeOff = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const t = await tx.staffTimeOff.create({
+          data: {
+            tenantId: tenant.tenantId,
+            membershipId: colleague.id,
+            startsAt: new Date('2033-01-01T00:00:00Z'),
+            endsAt: new Date('2033-01-02T00:00:00Z'),
+          },
+        });
+        return t.id;
+      });
     return {
       tenant,
-      fresh: { clientNote: note, measurementRecord: record },
+      fresh: { clientNote: note, measurementRecord: record, appointment, timeOff },
       resources: {
+        appointmentType: appointmentType.id,
         garmentCategory: category.id,
         measurementTemplate: template.id,
         client: client.id,
@@ -247,6 +309,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         TenantsModule,
         ClientsModule,
         MeasurementsModule,
+        AppointmentsModule,
         PlatformModule,
       ],
     })
@@ -284,7 +347,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
     const undeclared = routes
       .filter((r) => r.access && TENANT_SCOPED_REALMS.has(r.access.realm))
       .flatMap((r) =>
-        [...r.pathParams, ...uuidBodyFields(r.body)]
+        [...r.pathParams, ...uuidBodyFields(r.body), ...uuidBodyFields(r.query)]
           .filter((field) => !(field in r.references))
           .map((field) => `${r.operationId}: ${field}`),
       );
@@ -313,6 +376,11 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'GarmentCategoriesController.saveTemplate',
         'MeasurementsController.create',
         'MeasurementsController.record',
+        'AppointmentsController.create',
+        'AppointmentsController.slots',
+        'AppointmentsController.list',
+        'AppointmentsController.reschedule',
+        'StaffScheduleController.deleteTimeOff',
         'RolesController.update',
         'AuthController.switchTenant',
         'StaffController.update',
@@ -350,9 +418,11 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
             else body[f] = id;
           }
+          // GET routes take the sample and the ids as query parameters.
+          const query = new URLSearchParams(body as Record<string, string>).toString();
           return () =>
             route.method === 'GET'
-              ? actorBrowser.get(path)
+              ? actorBrowser.get(query ? `${path}?${query}` : path)
               : actorBrowser.send(
                   route.method.toLowerCase() as 'post' | 'put' | 'patch' | 'delete',
                   path,

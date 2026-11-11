@@ -316,3 +316,17 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Permissions:** categories and templates need `tenant.settings`; records need `measurements.read`/`measurements.write`. No new permission was added.
 - `MeasurementsModule` uses `ClientsService` and `TenantSettingsService` (exported) instead of reading their tables.
 **Consequences:** Unit conversion and storefront viewing are not built. Order items will snapshot records in Phase 4.
+
+## ADR-028 — Appointments: per-staff booking with an exclusion constraint
+**Status:** Accepted (2026-11-11, product owner approved step 6a and both recommendations)
+**Context:** Appointments are booked per staff member (Q1). Double-booking is the main race risk (R7), and the roadmap requires a concurrency test.
+**Decision:**
+- Tables: `appointment_type`, `staff_availability` (weekly ranges; none means "follows opening hours"), `staff_time_off` and `appointment` (migration `0009`).
+- **The exclusion constraint is the source of truth.** `appointment_no_overlap` excludes overlapping `tstzrange(starts_at, blocked_until, '[)')` per `(tenant_id, staff_membership_id)` while the status is `PENDING` or `CONFIRMED`. `blocked_until = ends_at + buffer`, so the real end time is kept for display. A violation is `409 APPOINTMENT_CONFLICT`. Ten concurrent bookings of one slot yield exactly one success (integration test).
+- **Dashboard bookings may fall outside opening hours or availability**; staff are trusted with exceptions. The slots endpoint only offers times inside opening hours, the member's availability and outside time off, holidays and existing bookings (15-minute grid, tenant timezone via `Intl`, no new dependency). Storefront bookings (Phase 5) will be strict.
+- **Rescheduling moves the appointment in place**, keeping its length and buffer; the audit log keeps the old and new times. `rescheduledFromId` from the design is dropped.
+- Cancel, complete and no-show are allowed only from `PENDING`/`CONFIRMED`; anything else is `422 APPOINTMENT_CLOSED`. Cancelling frees the slot.
+- Filter ids on list endpoints (`clientId`, `staffMembershipId`) must exist, so a foreign id is a 404, not an empty list.
+- The cross-tenant suite now also checks uuid query parameters.
+- Deferred: booking rules (lead time, max days ahead) and "any available staff" to Phase 5; the order link to Phase 4; reminders to step 6b.
+**Consequences:** Adding time off does not move existing appointments; the calendar shows the clash for staff to resolve.

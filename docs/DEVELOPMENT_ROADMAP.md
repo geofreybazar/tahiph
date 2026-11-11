@@ -78,8 +78,9 @@ Work items:
 - [x] `feat/tenant-settings-staff`: business profile, settings, opening hours, holidays, staff management, invitation list/revoke (ADR-024). Merged 2026-11-11.
 - [x] `feat/custom-roles`: custom role editing with no privilege escalation (ADR-025). Merged 2026-11-11.
 - [x] `feat/clients`: clients, notes and communication log (ADR-026). Merged 2026-11-11.
-- [ ] `feat/measurements` (in review): garment categories, versioned templates, immutable records (ADR-027). Meets the exit criterion "measurement revisions are immutable".
-- [ ] Appointments (types, availability, booking with the exclusion constraint, reminders).
+- [x] `feat/measurements`: garment categories, versioned templates, immutable records (ADR-027). Merged 2026-11-11. Meets the exit criterion "measurement revisions are immutable".
+- [ ] `feat/appointments` (in review, step 6a): types, staff availability and time off, slots, booking with the exclusion constraint, reschedule and status changes (ADR-028). Meets the exit criterion "double-booking concurrency test passes".
+- [ ] Appointment reminders (step 6b).
 - [ ] Catalogue.
 - [ ] Uploads pipeline (needs a storage dependency decision and an ADR).
 - [ ] Proposed, not yet approved: client data export and erasure (RA 10173, `SECURITY.md` §4), before launch.

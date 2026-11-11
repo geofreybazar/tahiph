@@ -39,6 +39,9 @@ export type ResourceKind =
   | 'garmentCategory'
   | 'measurementTemplate'
   | 'measurementRecord'
+  | 'appointmentType'
+  | 'appointment'
+  | 'timeOff'
   | (string & {});
 
 /**

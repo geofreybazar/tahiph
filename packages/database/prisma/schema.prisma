@@ -102,6 +102,29 @@ enum CommunicationDirection {
   OUTBOUND
 }
 
+enum AppointmentKind {
+  CONSULTATION
+  MEASUREMENT
+  DESIGN
+  FITTING
+  FINAL_FITTING
+  PICKUP
+  OTHER
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentSource {
+  DASHBOARD
+  STOREFRONT
+}
+
 /// Default unit for new measurement records (Q2). Each record also stores its own unit.
 enum MeasurementUnit {
   CM
@@ -239,6 +262,7 @@ model Tenant {
   holidays          Holiday[]
   clients           Client[]
   garmentCategories GarmentCategory[]
+  appointmentTypes  AppointmentType[]
 
   @@map("tenant")
 }
@@ -312,6 +336,9 @@ model TenantMembership {
   clientNotes        ClientNote[]
   communications     Communication[]
   measurementRecords MeasurementRecord[]
+  staffAvailability  StaffAvailability[]
+  timeOff            StaffTimeOff[]
+  appointments       Appointment[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, userId])
@@ -494,6 +521,7 @@ model Client {
   notes              ClientNote[]
   communications     Communication[]
   measurementRecords MeasurementRecord[]
+  appointments       Appointment[]
 
   @@unique([tenantId, id])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
@@ -643,4 +671,94 @@ model MeasurementValue {
   @@id([recordId, fieldKey])
   @@index([tenantId, recordId])
   @@map("measurement_value")
+}
+
+// ---------------------------------------------------------------------------
+// Appointments (tenant-owned, RLS). Booked per staff member (Q1); an exclusion constraint
+// prevents overlaps (DATABASE_DESIGN.md §3.1, ADR-028).
+// ---------------------------------------------------------------------------
+
+model AppointmentType {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  tenantId        String          @map("tenant_id") @db.Uuid
+  name            String
+  kind            AppointmentKind
+  durationMinutes Int             @map("duration_minutes")
+  /// Kept free after the appointment (cleanup, notes); blocks the staff member's calendar.
+  bufferMinutes   Int             @default(0) @map("buffer_minutes")
+  /// Bookable on the storefront (Phase 5).
+  publicBookable  Boolean         @default(false) @map("public_bookable")
+  /// "#RRGGBB" for the calendar.
+  color           String?
+  archivedAt      DateTime?       @map("archived_at") @db.Timestamptz(3)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  appointments Appointment[]
+
+  @@unique([tenantId, id])
+  @@map("appointment_type")
+}
+
+/// Weekly working hours of a staff member, like OperatingHours. No rows: follows opening hours.
+model StaffAvailability {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  dayOfWeek    Int      @map("day_of_week") @db.SmallInt
+  opensMinute  Int      @map("opens_minute") @db.SmallInt
+  closesMinute Int      @map("closes_minute") @db.SmallInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, membershipId, dayOfWeek])
+  @@map("staff_availability")
+}
+
+model StaffTimeOff {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  startsAt     DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime @map("ends_at") @db.Timestamptz(3)
+  reason       String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, membershipId, startsAt])
+  @@map("staff_time_off")
+}
+
+model Appointment {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  tenantId          String            @map("tenant_id") @db.Uuid
+  clientId          String            @map("client_id") @db.Uuid
+  typeId            String            @map("type_id") @db.Uuid
+  staffMembershipId String            @map("staff_membership_id") @db.Uuid
+  startsAt          DateTime          @map("starts_at") @db.Timestamptz(3)
+  endsAt            DateTime          @map("ends_at") @db.Timestamptz(3)
+  /// endsAt + the type's buffer: the end of the range the exclusion constraint protects.
+  blockedUntil      DateTime          @map("blocked_until") @db.Timestamptz(3)
+  status            AppointmentStatus @default(CONFIRMED)
+  source            AppointmentSource @default(DASHBOARD)
+  notes             String?
+  cancelReason      String?           @map("cancel_reason")
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client Client           @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  type   AppointmentType  @relation(fields: [tenantId, typeId], references: [tenantId, id], onDelete: Restrict)
+  staff  TenantMembership @relation(fields: [tenantId, staffMembershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, startsAt])
+  @@index([tenantId, clientId, startsAt(sort: Desc)])
+  @@index([tenantId, staffMembershipId, startsAt])
+  @@index([tenantId, typeId])
+  @@map("appointment")
 }
