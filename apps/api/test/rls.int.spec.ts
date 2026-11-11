@@ -153,18 +153,25 @@ describe('Tenant isolation in PostgreSQL (integration)', () => {
       expect(role?.permissions.map((p) => p.permission)).toEqual(['roles.manage']);
     });
 
-    it('does not leak across 2,000 concurrent operations on a shared pool', async () => {
+    it('does not leak across 2,000 interleaved operations on a shared pool', async () => {
+      // 50 in flight over a 10-connection pool: every connection serves both tenants in turn.
+      // (Firing all 2,000 at once only measures queueing; Prisma's 2 s maxWait then trips.)
       const tenants = [A, B];
-      const results = await Promise.all(
-        Array.from({ length: 2000 }, (_, i) => {
-          const t = tenants[i % 2]!;
-          return as(t.tenantId, async () => {
-            const rows = await tdb.db().role.findMany({ take: 5 });
-            return rows.length > 0 && rows.every((r) => r.tenantId === t.tenantId);
-          });
+      let next = 0;
+      let ok = true;
+      await Promise.all(
+        Array.from({ length: 50 }, async () => {
+          while (next < 2000) {
+            const t = tenants[next++ % 2]!;
+            const rows = await as(
+              t.tenantId,
+              async () => await tdb.db().role.findMany({ take: 5 }),
+            );
+            if (rows.length === 0 || rows.some((r) => r.tenantId !== t.tenantId)) ok = false;
+          }
         }),
       );
-      expect(results.every(Boolean)).toBe(true);
+      expect(ok).toBe(true);
     });
   });
 
