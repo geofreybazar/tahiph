@@ -2,6 +2,8 @@ import { Controller, Get, Module } from '@nestjs/common';
 import { DiscoveryModule, DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { ResponseSchema } from '../http/contract.js';
 import { Authenticated, Public, Realm, RequirePermission } from './decorators.js';
 import { RouteAccessAudit, findUnconfiguredRoutes } from './route-audit.js';
 
@@ -9,10 +11,12 @@ import { RouteAccessAudit, findUnconfiguredRoutes } from './route-audit.js';
 @Realm('tenant')
 class ConfiguredController {
   @Get('a')
+  @ResponseSchema(z.object({}))
   @RequirePermission('clients.read')
   a() {}
 
   @Get('b')
+  @ResponseSchema(z.object({}))
   @Authenticated()
   b() {}
 
@@ -23,26 +27,36 @@ class ConfiguredController {
 @Controller('bad')
 class UnconfiguredController {
   @Get('none')
+  @ResponseSchema(z.object({}))
   none() {}
 
   @Get('realm-only')
+  @ResponseSchema(z.object({}))
   @Realm('tenant')
   realmOnly() {}
 
   @Get('public-session')
+  @ResponseSchema(z.object({}))
   @Realm('public')
   @Authenticated()
   publicWithSession() {}
 
   @Get('internal-auth')
+  @ResponseSchema(z.object({}))
   @Realm('internal')
   @Authenticated()
   internalWithSession() {}
 
   @Get('ok')
+  @ResponseSchema(z.object({}))
   @Realm('platform')
   @Public()
   fine() {}
+
+  @Get('no-response')
+  @Realm('platform')
+  @Public()
+  noResponse() {}
 }
 
 async function problemsFor(...controllers: (new () => unknown)[]) {
@@ -63,10 +77,11 @@ describe('route access audit (deny by default)', () => {
 
   it('lists every route with missing or invalid configuration', async () => {
     expect((await problemsFor(UnconfiguredController)).sort()).toEqual([
-      'UnconfiguredController.internalWithSession',
-      'UnconfiguredController.none',
-      'UnconfiguredController.publicWithSession',
-      'UnconfiguredController.realmOnly',
+      'UnconfiguredController.internalWithSession (access)',
+      'UnconfiguredController.noResponse (response schema)',
+      'UnconfiguredController.none (access)',
+      'UnconfiguredController.publicWithSession (access)',
+      'UnconfiguredController.realmOnly (access)',
     ]);
   });
 

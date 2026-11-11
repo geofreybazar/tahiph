@@ -10,6 +10,8 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  acceptedResponseSchema,
+  csrfResponseSchema,
   acceptInvitationRequestSchema,
   emailOnlyRequestSchema,
   loginRequestSchema,
@@ -35,6 +37,7 @@ import { SessionService } from '../../core/auth/session.service.js';
 import { ENV } from '../../core/config/config.module.js';
 import type { Env } from '../../core/config/env.js';
 import { requireContext, type RequestContext } from '../../core/context/request-context.js';
+import { References, ResponseSchema } from '../../core/http/contract.js';
 import { ZodValidationPipe } from '../../core/http/zod-validation.pipe.js';
 import { AuthService, type RequestMeta, type StartedSession } from './auth.service.js';
 
@@ -58,17 +61,19 @@ export class AuthController {
 
   private async respondWithSession(res: Response, started: StartedSession): Promise<MeResponse> {
     setSessionCookie(res, 'TENANT', started.token);
-    return meResponseSchema.parse(await this.auth.meForSession(started));
+    return this.auth.meForSession(started);
   }
 
   /** Issues the double-submit CSRF token; call before the first state-changing request. */
   @Get('csrf')
+  @ResponseSchema(csrfResponseSchema)
   @Public()
   csrf(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return { csrfToken: issueCsrfToken(req, res) };
   }
 
   @Post('register')
+  @ResponseSchema(acceptedResponseSchema)
   @Public()
   @HttpCode(HttpStatus.ACCEPTED)
   async register(
@@ -80,6 +85,7 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @ResponseSchema(acceptedResponseSchema)
   @Public()
   @HttpCode(HttpStatus.ACCEPTED)
   async resend(
@@ -91,6 +97,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @ResponseSchema(meResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async verify(
@@ -102,6 +109,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @ResponseSchema(meResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async login(
@@ -115,6 +123,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ResponseSchema(acceptedResponseSchema)
   @Authenticated()
   @HttpCode(HttpStatus.OK)
   async logout(@Res({ passthrough: true }) res: Response) {
@@ -124,18 +133,19 @@ export class AuthController {
   }
 
   @Get('me')
+  @ResponseSchema(meResponseSchema)
   @Authenticated()
   async me() {
-    return meResponseSchema.parse(
-      await this.auth.me(
-        requireContext(this.cls, 'userId'),
-        this.cls.get('membershipId'),
-        this.cls.get('permissions') ?? [],
-      ),
+    return await this.auth.me(
+      requireContext(this.cls, 'userId'),
+      this.cls.get('membershipId'),
+      this.cls.get('permissions') ?? [],
     );
   }
 
   @Post('switch-tenant')
+  @ResponseSchema(meResponseSchema)
+  @References({ membershipId: 'membership' })
   @Authenticated()
   @HttpCode(HttpStatus.OK)
   async switchTenant(
@@ -153,6 +163,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ResponseSchema(acceptedResponseSchema)
   @Public()
   @HttpCode(HttpStatus.ACCEPTED)
   async forgot(
@@ -164,6 +175,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @ResponseSchema(acceptedResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async reset(
@@ -178,6 +190,7 @@ export class AuthController {
 
   /** Public, because new users have no session; an existing session is honoured if present. */
   @Post('accept-invitation')
+  @ResponseSchema(meResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async acceptInvitation(

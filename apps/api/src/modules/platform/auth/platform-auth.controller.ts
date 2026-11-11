@@ -10,6 +10,8 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  acceptedResponseSchema,
+  csrfResponseSchema,
   loginRequestSchema,
   mfaEnrollmentResponseSchema,
   mfaVerifiedResponseSchema,
@@ -28,6 +30,7 @@ import { clearSessionCookie, setSessionCookie } from '../../../core/auth/session
 import { ENV } from '../../../core/config/config.module.js';
 import type { Env } from '../../../core/config/env.js';
 import { requireContext, type RequestContext } from '../../../core/context/request-context.js';
+import { ResponseSchema } from '../../../core/http/contract.js';
 import { ZodValidationPipe } from '../../../core/http/zod-validation.pipe.js';
 import { PlatformAuthService, type RequestMeta } from './platform-auth.service.js';
 
@@ -53,12 +56,14 @@ export class PlatformAuthController {
   }
 
   @Get('csrf')
+  @ResponseSchema(csrfResponseSchema)
   @Public()
   csrf(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return { csrfToken: issueCsrfToken(req, res) };
   }
 
   @Post('login')
+  @ResponseSchema(platformLoginResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async login(
@@ -68,18 +73,20 @@ export class PlatformAuthController {
   ) {
     const { token, next } = await this.auth.login(body, this.meta(req));
     setSessionCookie(res, 'PLATFORM', token);
-    return platformLoginResponseSchema.parse({ next });
+    return { next };
   }
 
   @Post('mfa/enroll')
+  @ResponseSchema(mfaEnrollmentResponseSchema)
   @Authenticated()
   @AllowMfaPending()
   @HttpCode(HttpStatus.OK)
   async enroll() {
-    return mfaEnrollmentResponseSchema.parse(await this.auth.beginEnrollment(this.adminId()));
+    return this.auth.beginEnrollment(this.adminId());
   }
 
   @Post('mfa/verify')
+  @ResponseSchema(mfaVerifiedResponseSchema)
   @Authenticated()
   @AllowMfaPending()
   @HttpCode(HttpStatus.OK)
@@ -96,13 +103,14 @@ export class PlatformAuthController {
       this.meta(req),
     );
     setSessionCookie(res, 'PLATFORM', r.token);
-    return mfaVerifiedResponseSchema.parse({
+    return {
       me: await this.auth.me(adminId, true),
       ...(r.recoveryCodes ? { recoveryCodes: r.recoveryCodes } : {}),
-    });
+    };
   }
 
   @Post('mfa/recover')
+  @ResponseSchema(mfaVerifiedResponseSchema)
   @Authenticated()
   @AllowMfaPending()
   @HttpCode(HttpStatus.OK)
@@ -119,22 +127,22 @@ export class PlatformAuthController {
       this.meta(req),
     );
     setSessionCookie(res, 'PLATFORM', r.token);
-    return mfaVerifiedResponseSchema.parse({
+    return {
       me: await this.auth.me(adminId, true),
       recoveryCodesRemaining: r.remaining,
-    });
+    };
   }
 
   @Get('me')
+  @ResponseSchema(platformMeResponseSchema)
   @Authenticated()
   @AllowMfaPending()
   async me() {
-    return platformMeResponseSchema.parse(
-      await this.auth.me(this.adminId(), this.cls.get('mfaVerified') === true),
-    );
+    return await this.auth.me(this.adminId(), this.cls.get('mfaVerified') === true);
   }
 
   @Post('logout')
+  @ResponseSchema(acceptedResponseSchema)
   @Authenticated()
   @AllowMfaPending()
   @HttpCode(HttpStatus.OK)

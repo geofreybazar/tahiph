@@ -75,7 +75,7 @@ The brief's `SubscriptionsModule` and `BillingModule` are merged into `billing/`
 - Each endpoint has request and response Zod schemas in `packages/validation/src/<module>/`.
 - The API validates params, query and body with `ZodValidationPipe`. Unknown keys are **stripped** (`.strip()`); for critical endpoints (payments, auth) they are **rejected** (`.strict()`).
 - Response schemas are used to serialize, which guarantees no extra fields (e.g. `passwordHash`) leak.
-- OpenAPI is generated from the Zod schemas. The generator is chosen in Phase 2, when the first business endpoints exist. `nestjs-zod` does not support NestJS 12, so the candidates are `@nestjs/swagger` 12 fed by Zod 4's native `z.toJSONSchema()` (see ADR-015).
+- **Implemented:** OpenAPI 3.1 is generated from the Zod schemas and route metadata (ADR-023). Every route declares `@ResponseSchema()`, which also serializes its responses. Routes whose requests carry tenant resource ids declare them with `@References()`, which drives the cross-tenant suite.
 - **Implemented (Phase 1):** `ZodValidationPipe` (`apps/api/src/core/http/zod-validation.pipe.ts`), the response envelope interceptor, the global exception filter and the error envelope schema (`packages/validation/src/envelope.ts`).
 - Frontends import the same schemas for React Hook Form and for typing TanStack Query results.
 

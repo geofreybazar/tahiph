@@ -6,3 +6,5 @@ export const healthReportSchema = z.object({
   status: z.enum(['ok', 'error']),
   checks: z.record(z.string(), healthCheckStatusSchema),
 });
+
+export const livenessSchema = z.object({ status: z.literal('ok') });

@@ -16,6 +16,7 @@ import { SessionService } from '../../core/auth/session.service.js';
 import { ENV } from '../../core/config/config.module.js';
 import type { Env } from '../../core/config/env.js';
 import { requireContext, type RequestContext } from '../../core/context/request-context.js';
+import { References, ResponseSchema } from '../../core/http/contract.js';
 import { ZodValidationPipe } from '../../core/http/zod-validation.pipe.js';
 import { InvitationsService } from './invitations.service.js';
 import { OnboardingService } from './onboarding.service.js';
@@ -32,6 +33,7 @@ export class OnboardingController {
 
   /** Creates an atelier owned by the signed-in user and switches the session to it. */
   @Post('tenant')
+  @ResponseSchema(atelierCreatedResponseSchema)
   @Authenticated()
   async create(
     @Body(new ZodValidationPipe(createAtelierRequestSchema)) body: CreateAtelierRequest,
@@ -46,11 +48,11 @@ export class OnboardingController {
     await this.sessions.revoke(requireContext(this.cls, 'sessionId'));
     setSessionCookie(res, 'TENANT', result.session.token);
     // Never echo the session token: it travels only in the cookie.
-    return atelierCreatedResponseSchema.parse({
+    return {
       atelier: result.atelier,
       membershipId: result.membershipId,
       storefrontHost: result.storefrontHost,
-    });
+    };
   }
 }
 
@@ -63,13 +65,13 @@ export class InvitationsController {
   ) {}
 
   @Post()
+  @ResponseSchema(invitationCreatedResponseSchema)
+  @References({ roleId: 'role' })
   @RequirePermission('staff.manage')
   async create(
     @Body(new ZodValidationPipe(createInvitationRequestSchema)) body: CreateInvitationRequest,
     @Req() req: Request,
   ) {
-    return invitationCreatedResponseSchema.parse(
-      await this.invitations.invite(body, clientIp(req, this.env)),
-    );
+    return await this.invitations.invite(body, clientIp(req, this.env));
   }
 }

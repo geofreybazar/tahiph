@@ -10,6 +10,8 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  acceptedResponseSchema,
+  csrfResponseSchema,
   customerMeResponseSchema,
   customerOtpStartRequestSchema,
   customerOtpVerifyRequestSchema,
@@ -26,6 +28,7 @@ import { SessionService } from '../../../core/auth/session.service.js';
 import { ENV } from '../../../core/config/config.module.js';
 import type { Env } from '../../../core/config/env.js';
 import { requireContext, type RequestContext } from '../../../core/context/request-context.js';
+import { ResponseSchema } from '../../../core/http/contract.js';
 import { ZodValidationPipe } from '../../../core/http/zod-validation.pipe.js';
 import { CustomerAuthService, type RequestMeta } from './customer-auth.service.js';
 
@@ -46,12 +49,14 @@ export class CustomerAuthController {
   }
 
   @Get('csrf')
+  @ResponseSchema(csrfResponseSchema)
   @Public()
   csrf(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return { csrfToken: issueCsrfToken(req, res) };
   }
 
   @Post('start')
+  @ResponseSchema(acceptedResponseSchema)
   @Public()
   @HttpCode(HttpStatus.ACCEPTED)
   async start(
@@ -63,6 +68,7 @@ export class CustomerAuthController {
   }
 
   @Post('verify')
+  @ResponseSchema(customerMeResponseSchema)
   @Public()
   @HttpCode(HttpStatus.OK)
   async verify(
@@ -76,16 +82,18 @@ export class CustomerAuthController {
     );
     const r = await this.auth.verify(body, presented?.id, this.meta(req));
     setSessionCookie(res, 'CUSTOMER', r.token);
-    return customerMeResponseSchema.parse(r.me);
+    return r.me;
   }
 
   @Get('me')
+  @ResponseSchema(customerMeResponseSchema)
   @Authenticated()
   async me() {
-    return customerMeResponseSchema.parse(await this.auth.me());
+    return this.auth.me();
   }
 
   @Post('logout')
+  @ResponseSchema(acceptedResponseSchema)
   @Authenticated()
   @HttpCode(HttpStatus.OK)
   async logout(@Res({ passthrough: true }) res: Response) {

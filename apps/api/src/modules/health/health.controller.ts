@@ -1,5 +1,7 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { Public, Realm } from '../../core/auth/decorators.js';
+import { healthReportSchema, livenessSchema } from '@tahi/validation';
+import { ResponseSchema } from '../../core/http/contract.js';
 import { ServiceUnavailableError } from '../../core/http/domain-error.js';
 import { HealthService, type HealthReport } from './health.service.js';
 
@@ -15,11 +17,13 @@ export class HealthController {
   constructor(private readonly health: HealthService) {}
 
   @Get('live')
+  @ResponseSchema(livenessSchema)
   live(): { status: 'ok' } {
     return { status: 'ok' };
   }
 
   @Get('ready')
+  @ResponseSchema(healthReportSchema)
   async ready(): Promise<HealthReport> {
     const report = await this.health.readiness();
     if (report.status !== 'ok') {

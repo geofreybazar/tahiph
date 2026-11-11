@@ -10,7 +10,7 @@ import { ValidationFailedError } from './domain-error.js';
  */
 @Injectable()
 export class ZodValidationPipe<S extends z.ZodType> implements PipeTransform<unknown, z.output<S>> {
-  constructor(private readonly schema: S) {}
+  constructor(readonly schema: S) {}
 
   transform(value: unknown): z.output<S> {
     const result = this.schema.safeParse(value);

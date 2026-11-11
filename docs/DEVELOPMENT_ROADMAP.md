@@ -72,6 +72,8 @@ Work items:
 **Open from Phase 2:** the OpenAPI generator choice (ADR-015) has not been made. Phase 2's endpoints are fully described by the Zod contracts in `@tahi/validation`. Propose deciding it at the start of Phase 3.
 
 ## Phase 3 — Tenant business management
+**Progress:** `feat/api-contracts` (OpenAPI generator + automatic cross-tenant suite) is in review.
+
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
 
 **Exit criteria:** the double-booking concurrency test passes (parallel inserts → exactly one succeeds); measurement revisions are immutable; uploads are validated.

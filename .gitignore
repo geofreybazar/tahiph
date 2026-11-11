@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Spike-generated Prisma clients
 spikes/**/generated/
+
+# Generated API document (CI artifact)
+openapi.json

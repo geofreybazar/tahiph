@@ -128,6 +128,11 @@ RLS policies are maintained as raw SQL in Prisma migrations, plus a CI check tha
 
 ## 7. Cross-tenant test suite (mandatory, CI)
 
+**Implemented** (`apps/api/test/cross-tenant.int.spec.ts`), driven by the route inventory:
+- Any tenant, customer or public route whose path params or uuid body fields are not declared with `@References()` fails the suite.
+- Each reference is sent with another atelier's id. The suite expects 404, checks that the victim atelier's rows are unchanged, and runs a positive control with the actor's own id.
+- Customer and public realms join when their first referencing routes exist.
+
 1. Fixture: tenants **A** and **B**, each with an owner, a staff member, a client, an order, an appointment and a payment.
 2. For **every** tenant-realm route (enumerated from the Nest router at test time, so new routes are covered automatically):
    - Acting as A, access B's resource ids. Expect **404** (existence is not disclosed).

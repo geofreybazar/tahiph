@@ -28,7 +28,9 @@ import { SessionService } from '../src/core/auth/session.service.js';
 import type { RequestContext } from '../src/core/context/request-context.js';
 import { CoreModule } from '../src/core/core.module.js';
 import { TENANT_DB, UNSCOPED_PRISMA } from '../src/core/database/database.module.js';
+import { ResponseSchema } from '../src/core/http/contract.js';
 import { NotFoundError } from '../src/core/http/domain-error.js';
+import { z } from 'zod';
 import { configureApp } from '../src/core/http/configure-app.js';
 import { HttpModule } from '../src/core/http/http.module.js';
 import { addMember, asTenant, createTenant, createUser, type TenantFixture } from './fixtures.js';
@@ -46,6 +48,7 @@ class TenantProbe {
   ) {}
 
   @Get('me')
+  @ResponseSchema(z.unknown())
   @Authenticated()
   me() {
     return {
@@ -56,6 +59,7 @@ class TenantProbe {
   }
 
   @Get('roles')
+  @ResponseSchema(z.unknown())
   @RequirePermission('roles.manage')
   async roles() {
     return (await this.tdb.db().role.findMany({ select: { id: true, tenantId: true } })).map(
@@ -64,6 +68,7 @@ class TenantProbe {
   }
 
   @Get('roles/:id')
+  @ResponseSchema(z.unknown())
   @RequirePermission('roles.manage')
   async role(@Param('id') id: string) {
     const role = await this.tdb.db().role.findFirst({ where: { id }, select: { id: true } });
@@ -72,6 +77,7 @@ class TenantProbe {
   }
 
   @Post('roles')
+  @ResponseSchema(z.unknown())
   @RequirePermission('roles.manage')
   async createRole() {
     return this.tdb.withTenantTx(async () => {
@@ -88,18 +94,21 @@ class TenantProbe {
 @Realm('platform')
 class PlatformProbe {
   @Get('tenants')
+  @ResponseSchema(z.unknown())
   @RequirePermission('platform.tenants.read')
   tenants() {
     return { ok: true };
   }
 
   @Get('admins')
+  @ResponseSchema(z.unknown())
   @RequirePermission('platform.admins.manage')
   admins() {
     return { ok: true };
   }
 
   @Get('mfa')
+  @ResponseSchema(z.unknown())
   @Authenticated()
   @AllowMfaPending()
   mfa() {
@@ -114,6 +123,7 @@ class PublicProbe {
   constructor(private readonly cls: ClsService<RequestContext>) {}
 
   @Get()
+  @ResponseSchema(z.unknown())
   get() {
     return { tenantId: this.cls.get('tenantId') };
   }
@@ -124,6 +134,7 @@ class PublicProbe {
 @Authenticated()
 class CustomerProbe {
   @Get()
+  @ResponseSchema(z.unknown())
   get() {
     return { ok: true };
   }

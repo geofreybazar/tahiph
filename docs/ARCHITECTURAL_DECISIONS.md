@@ -255,7 +255,15 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 ## ADR-023 — OpenAPI generated from the Zod contracts
 **Status:** Accepted (2026-11-11, product owner chose the recommended option)
 **Context:** ADR-015 deferred the OpenAPI generator. `nestjs-zod` does not support NestJS 12, and `@nestjs/swagger` would describe every endpoint a second time with decorators.
-**Decision:** Build the OpenAPI 3.1 document from the existing `@tahi/validation` schemas, using Zod 4's built-in `z.toJSONSchema()` and a small route registry in the API (method, path, realm, request and response schemas). There is no new dependency, and the Zod contracts stay the single source of truth.
-- A test fails if a registered route's metadata disagrees with the Nest router, or if a route is missing from the registry.
-- The document is served only in development and exported as a CI artifact. It is not exposed in production.
-**Consequences:** We maintain a small amount of glue code (~150 lines), which is implemented at the start of Phase 3.
+**Decision:** Build the OpenAPI 3.1 document from the existing `@tahi/validation` schemas with Zod 4's `z.toJSONSchema()`. There is no new dependency, and the Zod contracts stay the single source of truth.
+- **No separate registry.** A route inventory (`core/http/route-inventory.ts`) reads the metadata that already drives the app:
+  - request schemas from each `ZodValidationPipe`;
+  - the response schema from `@ResponseSchema()`;
+  - realm, access and permissions from the auth decorators;
+  - status from `@HttpCode`;
+  - ids from `@References()`.
+- `@ResponseSchema()` is mandatory: the boot audit refuses to start without it, and the envelope interceptor parses every response with it, so undeclared fields are stripped.
+- A unit test checks that the inventory's paths equal Express's registered routes, and that the document contains no tenant id or secret fields.
+- **Delivery** (implemented on `feat/api-contracts`): `npm run openapi -w @tahi/api -- <file>` writes the document, and CI uploads it as the `openapi` artifact. The API does not serve it in any environment.
+- Refinements and transforms (e.g. email normalization) appear as plain types in the document; they are enforced at runtime.
+**Consequences:** About 250 lines of glue code that we maintain.
