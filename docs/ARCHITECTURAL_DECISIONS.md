@@ -238,7 +238,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 **Deferred to Phase 7:** step-up re-authentication for sensitive actions, resetting MFA for an admin who lost their device (Super Admin action), admin management, and WebAuthn.
 
 ## ADR-022 — Storefront customer sign-in
-**Status:** Proposed (2026-11-11, branch `feat/customer-auth`)
+**Status:** Accepted (2026-11-11, approved by the product owner)
 **Decision:**
 1. **`CustomerAccount` is a tenant-owned table** (RLS, `UNIQUE(tenant_id, email)`, migration 0005). The same email at two ateliers is two unrelated accounts: separate data subjects and controllers under the Data Privacy Act.
    - The link to the CRM `Client` (doc §3.5, "links or creates a Client") is **deferred to Phase 3**, when `Client` is designed. It will be an additive `client_id` with a composite FK.

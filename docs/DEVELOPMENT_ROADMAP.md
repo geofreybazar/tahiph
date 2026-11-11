@@ -1,13 +1,13 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phases 0 and 1 complete (approved 2026-11-11). Phase 2 in progress. Later phases are planned, not started.
+> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 not started: it needs answers to Q1 and Q2 and the OpenAPI decision. Later phases are planned, not started.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Product discovery & architecture | **Complete** |
 | 1 | Project foundation | **Complete** (local Docker check outstanding, see below) |
-| 2 | Authentication & multi-tenancy | **In review** (final branch `feat/customer-auth`) |
+| 2 | Authentication & multi-tenancy | **Complete** |
 | 3 | Tenant business management | Not started |
 | 4 | Sales & operations | Not started |
 | 5 | Personalized storefront | Not started |
@@ -57,7 +57,7 @@ Work items:
 - [x] Tenancy core: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). Merged.
 - [x] Staff auth on `feat/staff-auth`: register/verify/login/logout/reset, onboarding, invitations, switcher, CSRF, throttling, email queue (ADR-020). Merged.
 - [x] Platform auth on `feat/platform-auth`: password + mandatory TOTP, recovery codes, encrypted secrets, Super Admin CLI (ADR-021). Merged.
-- [x] Customer auth on `feat/customer-auth`: email code + magic link, per-atelier accounts (ADR-022). In review.
+- [x] Customer auth on `feat/customer-auth`: email code + magic link, per-atelier accounts (ADR-022). Merged.
 
 **Exit criteria:**
 - [x] **Cross-tenant suite passes for every route, with one caveat:**
