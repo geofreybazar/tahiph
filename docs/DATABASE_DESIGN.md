@@ -15,7 +15,7 @@
 | Timestamps | `timestamptz`, stored UTC. `created_at`, `updated_at` on all tables. Tenant timezone in `TenantSettings.timezone` (default `Asia/Manila`). |
 | Dates without time | `date` (e.g. holiday, promised delivery date), interpreted in the tenant's timezone |
 | Money | `numeric(12,2)` + `currency char(3)` (default `PHP`). Never float. Arithmetic uses `Prisma.Decimal` / decimal.js in `packages/utils/money`. |
-| Measurements | `numeric(7,2)` + unit (`CM`/`IN`) on the record |
+| Measurements | `numeric(7,3)` + unit (`CM`/`IN`) on the record. Three decimals keep 1/8" fractions exact (Q2). |
 | Emails | `citext` |
 | Enums | Postgres enums for stable sets (statuses); lookup tables for tenant-configurable sets (appointment types, production stages) |
 | Soft delete | `archived_at timestamptz NULL` on business entities. Financial and audit tables are never deleted. |
@@ -68,7 +68,7 @@
 - `MeasurementTemplate`: categoryId, version, isCurrent. Templates are **versioned**: editing fields creates a new version.
 - `MeasurementField`: templateId, key, label, unitKind, sortOrder, required, min/max
 - `MeasurementRecord`: clientId, templateId (version), unit, takenAt, takenBy, notes, `supersedesId?`. **Immutable** once saved (corrections create a new record).
-- `MeasurementValue`: recordId, fieldKey, value `numeric(7,2)`
+- `MeasurementValue`: recordId, fieldKey, value `numeric(7,3)`
 
 **Appointments**
 - `AppointmentType`: name, kind (`CONSULTATION`/`MEASUREMENT`/`DESIGN`/`FITTING`/`FINAL_FITTING`/`PICKUP`/`OTHER`), durationMin, bufferMin, publicBookable, color
@@ -129,7 +129,7 @@ ALTER TABLE appointment ADD CONSTRAINT appointment_no_overlap
 - Buffers are applied by storing `ends_at` including the buffer, or a separate `blocked_until` column (finalized in Phase 3).
 - The API maps SQLSTATE `23P01` to `409 APPOINTMENT_CONFLICT`.
 - Application-level slot computation is for UX only. The constraint is the source of truth.
-- Depends on Q1. A per-atelier calendar would drop `staff_membership_id` from the constraint.
+- Q1 answered: per staff member, so the constraint keeps `staff_membership_id`. "Any available staff" is resolved to a concrete staff member at booking time, inside the same transaction.
 
 ### 3.2 Order totals and balances
 - `Order.total` is computed from items at write time inside a transaction.
@@ -181,8 +181,8 @@ Every monetary column has a sibling `currency`. Orders and quotations are single
 
 ## 7. Decisions pending review
 
-1. Q1: appointment resource model (staff vs atelier vs room)
-2. Q2: measurement units and precision
+1. ~~Q1: appointment resource model~~: per staff member (answered 2026-11-11)
+2. ~~Q2: measurement units and precision~~: per-tenant unit, `numeric(7,3)` (answered 2026-11-11)
 3. Whether `CustomerAccount` is required for booking, or guest booking with email verification is allowed (recommendation: guest booking allowed; account optional)
 4. Installment plans in MVP or later
 5. Production: one `ProductionJob` per order item (recommended) vs per order

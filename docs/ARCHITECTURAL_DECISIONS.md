@@ -251,3 +251,11 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 4. **Tenant binding:** codes and links work only on the host of the atelier that issued them. Customer sessions are accepted only on that atelier's hosts, and only for an `ACTIVE` account, which the access guard reads through RLS.
 5. **Links** use `STOREFRONT_URL_TEMPLATE` (default `https://{host}`; local dev `http://{host}:3002`).
 **Consequences:** A database leak would expose code hashes that can be brute-forced (10⁶ possibilities). That is acceptable for 10-minute, single-use codes.
+
+## ADR-023 — OpenAPI generated from the Zod contracts
+**Status:** Accepted (2026-11-11, product owner chose the recommended option)
+**Context:** ADR-015 deferred the OpenAPI generator. `nestjs-zod` does not support NestJS 12, and `@nestjs/swagger` would describe every endpoint a second time with decorators.
+**Decision:** Build the OpenAPI 3.1 document from the existing `@tahi/validation` schemas, using Zod 4's built-in `z.toJSONSchema()` and a small route registry in the API (method, path, realm, request and response schemas). There is no new dependency, and the Zod contracts stay the single source of truth.
+- A test fails if a registered route's metadata disagrees with the Nest router, or if a route is missing from the registry.
+- The document is served only in development and exported as a CI artifact. It is not exposed in production.
+**Consequences:** We maintain a small amount of glue code (~150 lines), which is implemented at the start of Phase 3.

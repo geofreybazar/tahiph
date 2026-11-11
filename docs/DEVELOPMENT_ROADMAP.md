@@ -1,6 +1,6 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 not started: it needs answers to Q1 and Q2 and the OpenAPI decision. Later phases are planned, not started.
+> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 not started: Q1, Q2 and the OpenAPI decision (ADR-023) are answered; the scope awaits approval. Later phases are planned, not started.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |

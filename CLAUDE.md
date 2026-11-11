@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for fashion designers and bespoke ateliers (Philippines). Monorepo: Turborepo + npm workspaces.
 
-**Current phase:** Phases 0–2 are complete and merged. **Do not start Phase 3 until the product owner answers Q1 (appointment resource model) and Q2 (measurement units) and approves the Phase 3 scope.**
+**Current phase:** Phases 0–2 are complete and merged. Q1 (per staff member) and Q2 (per-tenant unit, numeric(7,3)) are answered. **Do not start Phase 3 until the product owner approves its scope.**
 
 ## Source of truth
 Read `docs/` before working on any area. Key docs:

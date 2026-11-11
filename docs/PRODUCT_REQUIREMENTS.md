@@ -140,8 +140,8 @@ Priority: **M** = MVP (first sellable release), **S** = soon after, **L** = late
 
 | # | Question | Impacts | Default assumption until answered |
 |---|---|---|---|
-| Q1 | Are appointments booked per staff member, per atelier (single calendar), or per room/capacity? | Appointment schema, exclusion constraint | Per staff member, with an optional "any available staff" mode |
-| Q2 | Measurement units: cm, inches, or per tenant? Fractional inches (1/8)? | Measurement storage | Per-tenant default unit. Values stored as `Decimal(7,2)` in the recorded unit, with the unit stored on each record. |
+| Q1 | Are appointments booked per staff member, per atelier (single calendar), or per room/capacity? | Appointment schema, exclusion constraint | **Answered (2026-11-11): per staff member**, with an optional "any available staff" mode for customers. |
+| Q2 | Measurement units: cm, inches, or per tenant? Fractional inches (1/8)? | Measurement storage | **Answered (2026-11-11): per-tenant default unit** (cm or in), with the unit stored on each record. Values are `numeric(7,3)`, so 1/8" (0.125) is exact. |
 | Q3 | MVP scope and target launch date | Roadmap | MVP = modules marked **M** |
 | Q4 | Plan tiers and limits (seats, storage, custom domain, online payments) | `SubscriptionPlan`, `PlanFeature` | Data-driven limits; values TBD |
 | Q5 | English only, or English + Filipino? | i18n | English, i18n-ready |
