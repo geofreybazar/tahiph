@@ -146,7 +146,7 @@ All versions are pinned exactly (no ranges) in `package.json` files.
 **Decision:** In each package, `tsconfig.json` (noEmit) covers all sources including tests and is used by the editor, `tsc` typecheck and type-aware ESLint. `tsconfig.build.json` emits `dist/` and excludes specs. Internal packages are consumed as built ESM from `dist/` (Turborepo `^build` ordering), so the API runs plain Node without path aliases.
 
 ## ADR-018 — Tenant data access strategy: RLS on every path, per-operation transactions by default
-**Status:** Proposed (2026-11-11, Phase 2 spike; awaiting product-owner approval)
+**Status:** Accepted (2026-11-11, Phase 2 spike; approved by the product owner)
 **Context:** Risk R1. Prisma has no hook to set `app.tenant_id` on a connection, so every RLS-protected query must run in a transaction that calls `set_config(..., true)` first. The spike (`spikes/prisma-rls/`) measured the cost and tested correctness against PostgreSQL 18 with Prisma 7.10.1 and `@prisma/adapter-pg`.
 **Results** (local Unix socket, pool of 10; one request = 1 list of 20 rows + 4 lookups by id; two runs agreed within 2%):
 
