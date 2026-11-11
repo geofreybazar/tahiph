@@ -178,11 +178,12 @@ export class AccessGuard implements CanActivate {
   }
 
   private authorize(access: RouteAccess, permissions: ReadonlySet<Permission> | null): void {
-    if (access.mode !== 'permission') return;
+    if (access.mode !== 'permission' && access.mode !== 'member') return;
     if (!permissions) {
       throw new ForbiddenError('NO_ACTIVE_TENANT', 'Select an active atelier to continue.');
     }
     if (!access.permissions.every((p) => permissions.has(p))) throw new ForbiddenError();
+    // 'member' lists no permissions: an active membership is enough.
   }
 }
 

@@ -69,6 +69,12 @@ POST /api/v1/onboarding/tenant {businessName, slug, …}
 ### 3.4 Staff invitation
 - An Owner or Admin invites by email and role. This creates `TenantMembership(INVITED)` and an `AuthToken(INVITE, 7 days)`.
 - Accepting links an existing `User` or creates one.
+- **Implemented:** the membership is created `ACTIVE` on acceptance; until then the invitation is only the `AuthToken`. `GET /tenant/invitations` lists pending ones and `DELETE /tenant/invitations/:id` revokes one (marks the token used).
+
+### 3.4.1 Staff management (implemented, ADR-024)
+- `GET /tenant/staff` (`staff.read`) lists members. `PATCH /tenant/staff/:membershipId` (`staff.manage`) changes the role or sets `ACTIVE`/`DISABLED`.
+- Nobody changes their own membership or the owner's, and the owner role is never assigned (ownership transfer is a separate, owner-only flow, not built yet).
+- Disabling a member revokes the sessions acting through that membership. The guard already rejects a disabled membership on every request.
 
 ### 3.5 Customer (storefront)
 - `POST /api/v1/customer/auth/start {email}` sends a 6-digit OTP (10 min TTL, 5 attempts) and a magic link.
@@ -165,7 +171,9 @@ Guard order:
 3. `PermissionGuard`: check the permission set, cached per session.
 4. Resource-level policies in services, e.g. a Tailor with only `production.read_assigned` sees only jobs with their `WorkAssignment`; staff can't refund.
 
-Routes are **deny by default**: a global guard rejects any route lacking `@Realm()` and one of `@Public()`, `@Authenticated()` or `@RequirePermission()`, and the API refuses to start if such a route exists (ADR-019). A route on the wrong host returns 404.
+Routes are **deny by default**: a global guard rejects any route lacking `@Realm()` and one of `@Public()`, `@Authenticated()`, `@ActiveMember()` or `@RequirePermission()`, and the API refuses to start if such a route exists (ADR-019). A route on the wrong host returns 404.
+
+`@ActiveMember()` (tenant realm only, ADR-024) needs an active membership of an operational atelier but no specific permission. It is used for data every member needs, such as the timezone and opening hours. `@Authenticated()` does not require an active atelier.
 
 ### 7.4 Platform permissions
 `platform.tenants.read`, `platform.tenants.manage`, `platform.tenants.access_data` (view tenant business data; requires a reason and is audited), `platform.billing.*`, `platform.settings`, `platform.admins.manage` (Super Admin only), `platform.support.*`.

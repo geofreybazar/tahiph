@@ -267,3 +267,15 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Delivery** (implemented, merged 2026-11-11): `npm run openapi -w @tahi/api -- <file>` writes the document, and CI uploads it as the `openapi` artifact. The API does not serve it in any environment.
 - Refinements and transforms (e.g. email normalization) appear as plain types in the document; they are enforced at runtime.
 **Consequences:** About 250 lines of glue code that we maintain.
+
+## ADR-024 — Atelier settings, staff management and the member access mode
+**Status:** Accepted (2026-11-11, product owner approved the Phase 3 step 2 scope)
+**Context:** Phase 3 step 2 adds the business profile, settings, opening hours, holidays and staff management. Every member needs some of this data (timezone, hours), but `@Authenticated()` does not require an active atelier, and `@RequirePermission()` deliberately rejects an empty permission list.
+**Decision:**
+- **Access mode `member`** (`@ActiveMember()`): tenant realm only; requires an active membership of an operational atelier and no specific permission. The route audit rejects it on other realms. Reads use it; writes need `tenant.settings`, `staff.read` or `staff.manage`.
+- **One profile and one settings row per atelier**, created in the onboarding transaction. Migration `0006` backfills existing ateliers before enabling RLS (the owner role is subject to `FORCE ROW LEVEL SECURITY`). Services can rely on the rows existing.
+- **Opening hours** are minutes since local midnight in the tenant's timezone, replaced as a whole week by `PUT`. Overlaps are rejected by the Zod contract; a CHECK constraint enforces the range. There is no exclusion constraint, because the replace-all transaction is the only writer.
+- **Holidays** are `date` values, unique per atelier.
+- **Staff rules:** nobody changes their own membership or the owner's; the owner role is never assigned; disabling revokes that membership's sessions after commit.
+- Settings and staff live in the existing `tenants` module rather than separate `memberships/` and `settings/` modules (`API_STANDARDS.md` §3), because invitations already live there and the code is small.
+**Consequences:** One more access mode to understand. Moving the staff code to `memberships/` later is a mechanical refactor.

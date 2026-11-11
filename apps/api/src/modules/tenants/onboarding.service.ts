@@ -24,8 +24,9 @@ export interface AtelierCreated {
 
 /**
  * Creates an atelier in one transaction (docs/AUTHENTICATION_AND_AUTHORIZATION.md §3.1):
- * tenant + verified subdomain + system roles + the creator's OWNER membership + audit entry.
- * Default settings, templates and workflows arrive with their modules (Phase 3+).
+ * tenant + verified subdomain + system roles + the creator's OWNER membership + business
+ * profile and default settings (ADR-024) + audit entry. Templates and workflows arrive with
+ * their modules.
  */
 @Injectable()
 export class OnboardingService {
@@ -77,6 +78,10 @@ export class OnboardingService {
           data: { tenantId: tenant.id, userId, roleId: ownerRoleId, status: 'ACTIVE' },
           select: { id: true },
         });
+        await tx.businessProfile.create({
+          data: { tenantId: tenant.id, displayName: tenant.name },
+        });
+        await tx.tenantSettings.create({ data: { tenantId: tenant.id } });
         await tx.tenantAuditLog.create({
           data: {
             tenantId: tenant.id,

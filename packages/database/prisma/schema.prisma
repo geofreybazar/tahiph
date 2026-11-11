@@ -79,6 +79,12 @@ enum CustomerAccountStatus {
   DISABLED
 }
 
+/// Default unit for new measurement records (Q2). Each record also stores its own unit.
+enum MeasurementUnit {
+  CM
+  IN
+}
+
 enum ActorType {
   PLATFORM_USER
   USER
@@ -204,6 +210,10 @@ model Tenant {
   roles            Role[]
   auditLogs        TenantAuditLog[]
   customerAccounts CustomerAccount[]
+  businessProfile  BusinessProfile?
+  settings         TenantSettings?
+  operatingHours   OperatingHours[]
+  holidays         Holiday[]
 
   @@map("tenant")
 }
@@ -341,4 +351,85 @@ model AuditLog {
   @@index([createdAt(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc)])
   @@map("audit_log")
+}
+
+// ---------------------------------------------------------------------------
+// Atelier profile and settings (tenant-owned, RLS). One profile and one settings row per
+// tenant, created at onboarding (ADR-024).
+// ---------------------------------------------------------------------------
+
+model BusinessProfile {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @unique @map("tenant_id") @db.Uuid
+  displayName  String   @map("display_name")
+  legalName    String?  @map("legal_name")
+  /// Philippine Taxpayer Identification Number, as entered.
+  tin          String?
+  addressLine1 String?  @map("address_line1")
+  addressLine2 String?  @map("address_line2")
+  city         String?
+  province     String?
+  postalCode   String?  @map("postal_code")
+  phone        String?
+  email        String?  @db.Citext
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@map("business_profile")
+}
+
+model TenantSettings {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  tenantId         String          @unique @map("tenant_id") @db.Uuid
+  /// IANA time zone; dates and opening hours are interpreted in it.
+  timezone         String          @default("Asia/Manila")
+  currency         String          @default("PHP") @db.Char(3)
+  measurementUnit  MeasurementUnit @default(CM) @map("measurement_unit")
+  vatRegistered    Boolean         @default(false) @map("vat_registered")
+  /// Percentage, e.g. 12.00 for 12% VAT.
+  taxRate          Decimal         @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  pricesIncludeTax Boolean         @default(true) @map("prices_include_tax")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@map("tenant_settings")
+}
+
+/// One opening range on a weekday; a day can have several (e.g. split lunch). Minutes since
+/// local midnight in the tenant's timezone. Replaced as a whole week by the API.
+model OperatingHours {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  /// 0 = Sunday … 6 = Saturday.
+  dayOfWeek    Int      @map("day_of_week") @db.SmallInt
+  opensMinute  Int      @map("opens_minute") @db.SmallInt
+  closesMinute Int      @map("closes_minute") @db.SmallInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, dayOfWeek])
+  @@map("operating_hours")
+}
+
+/// A closed day, interpreted in the tenant's timezone.
+model Holiday {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  date      DateTime @db.Date
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, date])
+  @@map("holiday")
 }

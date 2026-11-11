@@ -1,6 +1,6 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 not started: Q1, Q2 and the OpenAPI decision (ADR-023) are answered; the scope awaits approval. Later phases are planned, not started.
+> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 in progress: scope and step order approved 2026-11-11 (see Phase 3 progress). Later phases are planned, not started.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |
@@ -8,7 +8,7 @@
 | 0 | Product discovery & architecture | **Complete** |
 | 1 | Project foundation | **Complete** (local Docker check outstanding, see below) |
 | 2 | Authentication & multi-tenancy | **Complete** |
-| 3 | Tenant business management | Not started |
+| 3 | Tenant business management | **In progress** |
 | 4 | Sales & operations | Not started |
 | 5 | Personalized storefront | Not started |
 | 6 | Financial & subscription management | Not started |
@@ -72,7 +72,16 @@ Work items:
 **Open from Phase 2:** the OpenAPI generator choice (ADR-015) has not been made. Phase 2's endpoints are fully described by the Zod contracts in `@tahi/validation`. Propose deciding it at the start of Phase 3.
 
 ## Phase 3 — Tenant business management
-**Progress:** `feat/api-contracts` (OpenAPI generator + automatic cross-tenant suite) merged 2026-11-11.
+**Progress:**
+- [x] `feat/api-contracts`: OpenAPI generator + automatic cross-tenant suite. Merged 2026-11-11.
+- [x] `fix/cross-tenant-suite`: the suite covers PUT/PATCH/DELETE and detects foreign updates. Merged 2026-11-11.
+- [ ] `feat/tenant-settings-staff` (in review): business profile, settings, opening hours, holidays, staff management, invitation list/revoke (ADR-024).
+- [ ] Custom role editing (`roles.manage`).
+- [ ] Clients (CRM).
+- [ ] Garment categories, measurement templates and immutable records.
+- [ ] Appointments (types, availability, booking with the exclusion constraint, reminders).
+- [ ] Catalogue.
+- [ ] Uploads pipeline (needs a storage dependency decision and an ADR).
 
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
 

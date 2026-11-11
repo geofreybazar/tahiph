@@ -21,8 +21,12 @@ export const ResponseSchema = (schema: z.ZodType, options: { paginated?: boolean
     paginated: options.paginated ?? false,
   } satisfies ResponseContract);
 
-/** Tenant resource kinds that ids in a request can point to (cross-tenant tests use these). */
-export type ResourceKind = 'role' | 'membership' | 'customer' | (string & {});
+/**
+ * Tenant resource kinds that ids in a request can point to (cross-tenant tests use these).
+ * `membership` is the caller's own membership; `staffMember` is another member's.
+ */
+export type ResourceKind =
+  'role' | 'membership' | 'staffMember' | 'holiday' | 'invitation' | 'customer' | (string & {});
 
 /**
  * Declares which path params and body fields are ids of tenant resources. The cross-tenant

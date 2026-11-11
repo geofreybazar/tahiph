@@ -288,6 +288,21 @@ describe('Staff authentication (integration: real PostgreSQL)', () => {
         return (await tx.role.findMany({ select: { key: true } })).map((r) => r.key).sort();
       });
       expect(roleKeys).toEqual(['admin', 'designer', 'owner', 'staff', 'tailor']);
+
+      // Profile and default settings are created with the atelier (ADR-024).
+      const profileRes = await a.b.get('tenant/profile');
+      expect(profileRes.status).toBe(200);
+      expect((profileRes.body as { data: unknown }).data).toMatchObject({
+        displayName: 'Maria Couture',
+        tin: null,
+      });
+      const settingsRes = await a.b.get('tenant/settings');
+      expect((settingsRes.body as { data: unknown }).data).toMatchObject({
+        timezone: 'Asia/Manila',
+        currency: 'PHP',
+        measurementUnit: 'CM',
+        taxRate: '0.00',
+      });
     });
 
     it('rejects taken and reserved slugs', async () => {

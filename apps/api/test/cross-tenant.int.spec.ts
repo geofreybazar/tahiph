@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { TENANT_MODELS, type DatabaseClient } from '@tahi/database';
+import { randomBytes } from 'node:crypto';
 import { TENANT_PERMISSIONS } from '@tahi/types';
 import type request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -44,6 +45,9 @@ type App = Parameters<typeof request>[0];
 const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'InvitationsController.create': () => ({ email: `x-${suffix()}@example.test` }),
   'AuthController.switchTenant': () => ({}),
+  'StaffController.update': () => ({}),
+  'TenantSettingsController.deleteHoliday': () => ({}),
+  'InvitationsController.revoke': () => ({}),
 };
 
 /** Realms whose routes act inside one atelier. Platform routes take tenant ids by design. */
@@ -87,7 +91,32 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       staff: ['clients.read'],
     });
     const member = await addMember(prisma, tenant, userId, 'owner');
-    return { tenant, resources: { role: tenant.roles.staff!, membership: member.id } };
+    const colleague = await addMember(prisma, tenant, (await createUser(prisma)).id, 'staff');
+    const holiday = await asTenant(prisma, tenant.tenantId, (tx) =>
+      tx.holiday.create({
+        data: { tenantId: tenant.tenantId, date: new Date('2030-12-25'), name: 'Christmas' },
+      }),
+    );
+    const invitation = await prisma.authToken.create({
+      data: {
+        tokenHash: new Uint8Array(randomBytes(32)),
+        purpose: 'INVITE',
+        tenantId: tenant.tenantId,
+        email: `inv-${suffix()}@example.test`,
+        metadata: { roleId: tenant.roles.staff! },
+        expiresAt: new Date(Date.now() + 3600_000),
+      },
+    });
+    return {
+      tenant,
+      resources: {
+        role: tenant.roles.staff!,
+        membership: member.id,
+        staffMember: colleague.id,
+        holiday: holiday.id,
+        invitation: invitation.id,
+      },
+    };
   }
 
   /**
@@ -180,7 +209,13 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       .filter((r) => Object.keys(r.references).length > 0)
       .map((r) => r.operationId);
     expect(covered).toEqual(
-      expect.arrayContaining(['InvitationsController.create', 'AuthController.switchTenant']),
+      expect.arrayContaining([
+        'InvitationsController.create',
+        'InvitationsController.revoke',
+        'AuthController.switchTenant',
+        'StaffController.update',
+        'TenantSettingsController.deleteHoliday',
+      ]),
     );
   });
 

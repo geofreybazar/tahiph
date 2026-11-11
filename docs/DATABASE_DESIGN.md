@@ -55,6 +55,8 @@
 - `OperatingHours`: dayOfWeek, opens, closes (multiple rows per day)
 - `Holiday`: date, name
 
+**Implemented (Phase 3, migration `0006_tenant_settings`, ADR-024):** the four tables above. Deviations: the logo waits for uploads; booking rules move to the appointments step; opening hours are stored as minutes since local midnight (`opens_minute`, `closes_minute`, CHECK `0 ≤ opens < closes ≤ 1440`); the tax rate is `numeric(5,2)` (0–100); currency is stored but not editable.
+
 **CRM**
 - `Client`: names, email, phone, birthday?, address, preferences (jsonb), source, tags, archivedAt
 - `CustomerAccount`: per-tenant customer login. `UNIQUE(tenant_id, email)`, `clientId` (1:1 link to a CRM client).

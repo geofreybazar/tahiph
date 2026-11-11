@@ -129,6 +129,15 @@ export class SessionService {
     });
   }
 
+  /** Ends every staff session acting through one membership (member disabled). */
+  async revokeForMembership(membershipId: string, now = new Date()): Promise<number> {
+    const r = await this.prisma.session.updateMany({
+      where: { realm: 'TENANT', activeMembershipId: membershipId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    return r.count;
+  }
+
   /** Mass revocation (password change, suspension, membership removal). */
   async revokeAllForSubject(
     realm: SessionRealm,

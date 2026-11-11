@@ -9,6 +9,10 @@ export const TENANT_MODELS = {
   TenantMembership: 'tenant_membership',
   TenantAuditLog: 'tenant_audit_log',
   CustomerAccount: 'customer_account',
+  BusinessProfile: 'business_profile',
+  TenantSettings: 'tenant_settings',
+  OperatingHours: 'operating_hours',
+  Holiday: 'holiday',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

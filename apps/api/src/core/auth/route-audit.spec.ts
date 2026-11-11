@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { ResponseSchema } from '../http/contract.js';
-import { Authenticated, Public, Realm, RequirePermission } from './decorators.js';
+import { ActiveMember, Authenticated, Public, Realm, RequirePermission } from './decorators.js';
 import { RouteAccessAudit, findUnconfiguredRoutes } from './route-audit.js';
 
 @Controller('ok')
@@ -19,6 +19,11 @@ class ConfiguredController {
   @ResponseSchema(z.object({}))
   @Authenticated()
   b() {}
+
+  @Get('c')
+  @ResponseSchema(z.object({}))
+  @ActiveMember()
+  c() {}
 
   /** Not a route: helpers without path metadata are ignored. */
   helper() {}
@@ -53,6 +58,12 @@ class UnconfiguredController {
   @Public()
   fine() {}
 
+  @Get('member-outside-tenant')
+  @ResponseSchema(z.object({}))
+  @Realm('customer')
+  @ActiveMember()
+  memberOutsideTenant() {}
+
   @Get('no-response')
   @Realm('platform')
   @Public()
@@ -78,6 +89,7 @@ describe('route access audit (deny by default)', () => {
   it('lists every route with missing or invalid configuration', async () => {
     expect((await problemsFor(UnconfiguredController)).sort()).toEqual([
       'UnconfiguredController.internalWithSession (access)',
+      'UnconfiguredController.memberOutsideTenant (access)',
       'UnconfiguredController.noResponse (response schema)',
       'UnconfiguredController.none (access)',
       'UnconfiguredController.publicWithSession (access)',

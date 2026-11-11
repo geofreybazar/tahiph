@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for fashion designers and bespoke ateliers (Philippines). Monorepo: Turborepo + npm workspaces.
 
-**Current phase:** Phases 0–2 are complete and merged. Q1 (per staff member) and Q2 (per-tenant unit, numeric(7,3)) are answered. **Do not start Phase 3 until the product owner approves its scope.**
+**Current phase:** Phase 3 in progress (scope approved 2026-11-11; steps and status in `docs/DEVELOPMENT_ROADMAP.md`). Each step is its own branch, merged only with product-owner approval.
 
 ## Source of truth
 Read `docs/` before working on any area. Key docs:
@@ -52,7 +52,7 @@ Read `docs/` before working on any area. Key docs:
 ## Tenancy conventions (ADR-018, ADR-019)
 - Services inject `TENANT_DB` and call `db()` (never hold a client). Use `withTenantTx(fn)` for multi-statement units of work; no external I/O inside it.
 - New tenant model: add it to `packages/database/src/tenancy/tenant-models.ts`, add the RLS SQL (`app_tenant_id()` policy, ENABLE + FORCE) to its migration, and use unchecked inputs (`tenantId` scalar). The RLS integration test fails otherwise.
-- Routes: `@Realm()` plus `@Public()`, `@Authenticated()` or `@RequirePermission()`, plus `@ResponseSchema()`. The API won't start otherwise. Return plain data; the interceptor parses it with the response schema.
+- Routes: `@Realm()` plus `@Public()`, `@Authenticated()`, `@ActiveMember()` (any active member, tenant realm) or `@RequirePermission()`, plus `@ResponseSchema()`. The API won't start otherwise. Return plain data; the interceptor parses it with the response schema.
 - Ids of tenant resources in a request (path params, uuid body fields) must be declared with `@References({ field: 'kind' })`, and the route needs a sample in `test/cross-tenant.int.spec.ts` (plus a fixture for a new resource kind).
 - Integration tests run as a non-superuser, non-BYPASSRLS role. Use `apps/api/test/fixtures.ts` (unique data, no cleanup) and `test/browser.ts` (cookies + CSRF) for HTTP flows.
 - Every non-GET browser request needs `Origin` + `X-CSRF-Token` (from `GET /api/v1/auth/csrf`). Emails go through `MAILER` (BullMQ queue), never sent inline.

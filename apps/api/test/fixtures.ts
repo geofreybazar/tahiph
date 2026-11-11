@@ -58,6 +58,9 @@ export async function createTenant(
   });
   const roleIds: Record<string, string> = {};
   await asTenant(prisma, tenant.id, async (tx) => {
+    // As onboarding does (ADR-024).
+    await tx.businessProfile.create({ data: { tenantId: tenant.id, displayName: tenant.name } });
+    await tx.tenantSettings.create({ data: { tenantId: tenant.id } });
     for (const [key, permissions] of Object.entries(roles)) {
       const role = await tx.role.create({
         data: {

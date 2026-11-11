@@ -5,3 +5,5 @@ export * from './auth.js';
 export * from './tenants.js';
 export * from './platform-auth.js';
 export * from './customer-auth.js';
+export * from './tenant-settings.js';
+export * from './staff.js';

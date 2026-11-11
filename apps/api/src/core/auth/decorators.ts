@@ -7,11 +7,11 @@ export const ACCESS_KEY = 'tahi:access';
 export const PERMISSIONS_KEY = 'tahi:permissions';
 export const ALLOW_MFA_PENDING_KEY = 'tahi:allowMfaPending';
 
-export type AccessMode = 'public' | 'authenticated' | 'permission';
+export type AccessMode = 'public' | 'authenticated' | 'member' | 'permission';
 
 /**
- * Every route needs @Realm() plus exactly one of @Public(), @Authenticated() or
- * @RequirePermission() (docs/AUTHENTICATION_AND_AUTHORIZATION.md §7.3). Routes without
+ * Every route needs @Realm() plus exactly one of @Public(), @Authenticated(), @ActiveMember()
+ * or @RequirePermission() (docs/AUTHENTICATION_AND_AUTHORIZATION.md §7.3). Routes without
  * them are rejected at boot and denied at runtime.
  */
 export const Realm = (realm: RouteRealm) => SetMetadata(REALM_KEY, realm);
@@ -21,6 +21,12 @@ export const Public = () => SetMetadata(ACCESS_KEY, 'public' satisfies AccessMod
 
 /** A valid session of the route's realm is enough (e.g. "who am I", onboarding). */
 export const Authenticated = () => SetMetadata(ACCESS_KEY, 'authenticated' satisfies AccessMode);
+
+/**
+ * Tenant realm only: a session with an active membership of an operational atelier, but no
+ * specific permission (e.g. reading the atelier's timezone and opening hours). ADR-024.
+ */
+export const ActiveMember = () => SetMetadata(ACCESS_KEY, 'member' satisfies AccessMode);
 
 /** Session plus every listed permission for the active tenant (or platform role). */
 export const RequirePermission = (...permissions: [Permission, ...Permission[]]) =>

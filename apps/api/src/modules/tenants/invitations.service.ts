@@ -1,6 +1,7 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { DatabaseClient, TenantDatabase } from '@tahi/database';
-import type { CreateInvitationRequest } from '@tahi/validation';
+import { idSchema, type CreateInvitationRequest } from '@tahi/validation';
+import { z } from 'zod';
 import { ClsService } from 'nestjs-cls';
 import { AuditService } from '../../core/audit/audit.service.js';
 import { AuthTokenService } from '../../core/auth/auth-token.service.js';
@@ -94,4 +95,43 @@ export class InvitationsService {
     });
     return { email: input.email, roleId: role.id, expiresAt: expiresAt.toISOString() };
   }
+
+  /** Pending invitations: unused and unexpired. */
+  async list() {
+    const tenantId = requireContext(this.cls, 'tenantId');
+    const rows = await this.prisma.authToken.findMany({
+      where: { purpose: 'INVITE', tenantId, usedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, email: true, metadata: true, expiresAt: true, createdAt: true },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      email: r.email ?? '',
+      roleId: inviteMetadataSchema.safeParse(r.metadata).data?.roleId ?? null,
+      expiresAt: r.expiresAt.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  /** Revokes a pending invitation; its link stops working (the token counts as used). */
+  async revoke(id: string, ip: string): Promise<null> {
+    const tenantId = requireContext(this.cls, 'tenantId');
+    // tenantId comes from the session, so another atelier's invitation is not found (404).
+    const { count } = await this.prisma.authToken.updateMany({
+      where: { id, purpose: 'INVITE', tenantId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (count === 0) throw new NotFoundError('Invitation not found.');
+    await this.audit.tenant({
+      actorType: 'USER',
+      actorId: requireContext(this.cls, 'userId'),
+      action: 'membership.invitation_revoked',
+      targetType: 'invitation',
+      targetId: id,
+      ip,
+    });
+    return null;
+  }
 }
+
+const inviteMetadataSchema = z.object({ roleId: idSchema });

@@ -32,6 +32,7 @@ export function readRouteAccess(
   const permissions =
     reflector.getAllAndOverride<Permission[] | undefined>(PERMISSIONS_KEY, targets) ?? [];
   if (mode === 'permission' && permissions.length === 0) return null;
+  if (mode === 'member' && realm !== 'tenant') return null;
   if (realm === 'internal' && mode !== 'public') return null;
   if (realm === 'public' && mode !== 'public') return null;
   return {
