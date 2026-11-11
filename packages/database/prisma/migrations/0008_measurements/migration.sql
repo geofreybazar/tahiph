@@ -9,6 +9,9 @@ CREATE TABLE "garment_category" (
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
+    CONSTRAINT "garment_category_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "measurement_template" (
     "id" UUID NOT NULL,
@@ -16,6 +19,9 @@ CREATE TABLE "measurement_template" (
     "category_id" UUID NOT NULL,
     "version" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "measurement_template_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "measurement_field" (
@@ -27,6 +33,9 @@ CREATE TABLE "measurement_field" (
     "section" TEXT,
     "sort_order" INTEGER NOT NULL,
     "required" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "measurement_field_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "measurement_record" (
@@ -42,12 +51,18 @@ CREATE TABLE "measurement_record" (
     "supersedes_id" UUID,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+    CONSTRAINT "measurement_record_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "measurement_value" (
     "tenant_id" UUID NOT NULL,
     "record_id" UUID NOT NULL,
     "field_key" TEXT NOT NULL,
     "value" DECIMAL(7,3) NOT NULL,
+
+    CONSTRAINT "measurement_value_pkey" PRIMARY KEY ("record_id","field_key")
+);
 
 -- CreateIndex
 CREATE INDEX "garment_category_tenant_id_name_idx" ON "garment_category"("tenant_id", "name");
