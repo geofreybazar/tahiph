@@ -172,7 +172,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - Not measured: the TCP path, and the non-owner `tahi_app` role. The spike ran as the table owner with `FORCE ROW LEVEL SECURITY`, which applies the same policies. The Phase 2 integration suite covers `tahi_app` in CI.
 
 ## ADR-019 — Tenancy core: no Redis caching yet; access guard and schema refinements
-**Status:** Proposed (2026-11-11, branch `feat/tenancy-core`)
+**Status:** Accepted (2026-11-11, approved by the product owner)
 **Context:** Phase 2 implements tenant resolution, sessions and access control. The Phase 0 docs planned Redis caches: sessions for 60 s, Host → tenant for 5 min.
 **Decision:**
 1. **No Redis caching for sessions or TenantDomain for now.** Each request does one lookup by unique index in PostgreSQL (well under 1 ms). A cache would add a revocation window: a revoked session could stay valid until the cache entry expires or the delete reaches Redis. Revisit with k6 numbers in Phase 8.

@@ -54,7 +54,7 @@ Work items:
 
 **Progress:**
 - [x] RLS spike (ADR-018).
-- [x] Tenancy core on `feat/tenancy-core`: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). In review.
+- [x] Tenancy core: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). Merged.
 - [ ] Staff auth (`feat/staff-auth`)
 - [ ] Platform auth (`feat/platform-auth`)
 - [ ] Customer auth (`feat/customer-auth`)
