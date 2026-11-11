@@ -75,8 +75,8 @@ Work items:
 **Progress:**
 - [x] `feat/api-contracts`: OpenAPI generator + automatic cross-tenant suite. Merged 2026-11-11.
 - [x] `fix/cross-tenant-suite`: the suite covers PUT/PATCH/DELETE and detects foreign updates. Merged 2026-11-11.
-- [ ] `feat/tenant-settings-staff` (in review): business profile, settings, opening hours, holidays, staff management, invitation list/revoke (ADR-024).
-- [ ] Custom role editing (`roles.manage`).
+- [x] `feat/tenant-settings-staff`: business profile, settings, opening hours, holidays, staff management, invitation list/revoke (ADR-024). Merged 2026-11-11.
+- [ ] `feat/custom-roles` (in review): custom role editing with no privilege escalation (ADR-025).
 - [ ] Clients (CRM).
 - [ ] Garment categories, measurement templates and immutable records.
 - [ ] Appointments (types, availability, booking with the exclusion constraint, reminders).

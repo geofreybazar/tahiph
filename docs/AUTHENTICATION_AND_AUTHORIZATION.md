@@ -155,6 +155,13 @@ audit.read
 
 Owners can clone and edit roles. System roles cannot be deleted, and the Owner role cannot be edited.
 
+**Implemented (ADR-025):** `GET /tenant/roles` (`staff.read`), and `POST`, `PATCH /:id` and `DELETE /:id` (`roles.manage`). Anyone with `roles.manage` (Owner and Admin by default) may edit roles, within these rules:
+- Owner-only permissions (`tenant.billing`, `tenant.merchant_account`, `tenant.transfer_ownership`) are never granted to another role.
+- The caller may only add or remove permissions they hold themselves. Permissions they lack can stay on a role but cannot be changed.
+- Unknown permission strings are rejected. Names are unique per atelier, ignoring case.
+- A role with members or pending invitations cannot be deleted (`ROLE_IN_USE`).
+- Changes apply on the member's next request, because the guard reads the role on every request.
+
 ### 7.3 Enforcement
 ```ts
 @Controller('tenant/orders')

@@ -57,7 +57,8 @@ export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 export type Permission = TenantPermission | PlatformPermission;
 
 const ALL_TENANT: readonly TenantPermission[] = TENANT_PERMISSIONS;
-const OWNER_ONLY: readonly TenantPermission[] = [
+/** Never granted to any role but Owner (§7.2). */
+export const OWNER_ONLY_PERMISSIONS: readonly TenantPermission[] = [
   'tenant.billing',
   'tenant.merchant_account',
   'tenant.transfer_ownership',
@@ -78,7 +79,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
   {
     key: 'admin',
     name: 'Admin',
-    permissions: ALL_TENANT.filter((p) => !OWNER_ONLY.includes(p)),
+    permissions: ALL_TENANT.filter((p) => !OWNER_ONLY_PERMISSIONS.includes(p)),
   },
   {
     key: 'designer',

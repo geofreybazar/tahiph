@@ -279,3 +279,14 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Staff rules:** nobody changes their own membership or the owner's; the owner role is never assigned; disabling revokes that membership's sessions after commit.
 - Settings and staff live in the existing `tenants` module rather than separate `memberships/` and `settings/` modules (`API_STANDARDS.md` §3), because invitations already live there and the code is small.
 **Consequences:** One more access mode to understand. Moving the staff code to `memberships/` later is a mechanical refactor.
+
+## ADR-025 — Custom role editing without privilege escalation
+**Status:** Accepted (2026-11-11, product owner approved the Phase 3 step 3 scope)
+**Context:** §7.2 lets ateliers clone and edit roles. `roles.manage` is held by Admins as well as Owners, so editing must not become a way to gain access the editor does not have.
+**Decision:**
+- The caller may only add or remove permissions they hold (`permissionChangeProblems`, unit-tested). Owner-only permissions are never put on another role. Unknown strings are rejected with `VALIDATION_FAILED`.
+- The Owner role cannot be changed. Other system roles can be edited but not deleted. Custom roles get a generated key `custom-<8 hex>`.
+- Deleting a role with members or pending invitations is refused (`ROLE_IN_USE`). Membership foreign keys are `RESTRICT`, so a concurrent assignment makes the delete fail rather than orphan a member.
+- Name uniqueness (case-insensitive) is checked in the service, not constrained in the database. Two concurrent creates can both succeed; this is accepted for now and marked with a `shortcut:` comment.
+- No migration: `role` and `role_permission` already exist.
+**Consequences:** An Admin cannot edit a role beyond their own permission set, even when that role holds more. Only the Owner can manage those.

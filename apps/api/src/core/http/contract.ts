@@ -23,7 +23,8 @@ export const ResponseSchema = (schema: z.ZodType, options: { paginated?: boolean
 
 /**
  * Tenant resource kinds that ids in a request can point to (cross-tenant tests use these).
- * `membership` is the caller's own membership; `staffMember` is another member's.
+ * `membership` is the caller's own membership; `staffMember` is another member's;
+ * `customRole` is a role that can be deleted (not a system role, no members).
  */
 export type ResourceKind =
   'role' | 'membership' | 'staffMember' | 'holiday' | 'invitation' | 'customer' | (string & {});

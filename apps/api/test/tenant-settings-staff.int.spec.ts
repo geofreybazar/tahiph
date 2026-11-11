@@ -299,4 +299,119 @@ describe('Atelier settings and staff management (integration)', () => {
       expect((await staff.b.get('tenant/invitations')).status).toBe(403);
     });
   });
+
+  describe('roles', () => {
+    const roleAdmin = { roleAdmin: ['roles.manage', 'staff.read', 'clients.read'] } as Record<
+      string,
+      TenantPermission[]
+    >;
+
+    it('lists roles with permissions and member counts; needs staff.read', async () => {
+      const t = await atelier();
+      const owner = await member(t, 'owner');
+      const staff = await member(t, 'staff');
+      const roles = list(await owner.b.get('tenant/roles'));
+      expect(roles.find((r) => r.id === t.roles.staff)).toMatchObject({
+        permissions: ['clients.read'],
+        memberCount: 1,
+      });
+      expect((await staff.b.get('tenant/roles')).status).toBe(403);
+    });
+
+    it('creates, renames and deletes a custom role', async () => {
+      const t = await atelier();
+      const owner = await member(t, 'owner');
+      const created = await owner.b.post('tenant/roles', {
+        name: 'Cutter',
+        permissions: ['production.write', 'production.read'],
+      });
+      expect(created.status).toBe(201);
+      expect(data(created)).toMatchObject({
+        name: 'Cutter',
+        isSystem: false,
+        permissions: ['production.read', 'production.write'],
+        memberCount: 0,
+      });
+      expect(data(created).key).toMatch(/^custom-/);
+      const dup = await owner.b.post('tenant/roles', { name: 'cutter', permissions: [] });
+      expect([dup.status, code(dup.body)]).toEqual([409, 'ROLE_NAME_TAKEN']);
+
+      const id = data(created).id as string;
+      const renamed = await owner.b.send('patch', `tenant/roles/${id}`, { name: 'Head cutter' });
+      expect(data(renamed)).toMatchObject({ name: 'Head cutter' });
+      expect((await owner.b.send('delete', `tenant/roles/${id}`)).status).toBe(204);
+      expect((await owner.b.send('delete', `tenant/roles/${id}`)).status).toBe(404);
+      expect(await auditActions(t)).toEqual(
+        expect.arrayContaining(['role.created', 'role.updated', 'role.deleted']),
+      );
+    });
+
+    it('never grants owner-only, unknown or unheld permissions', async () => {
+      const t = await atelier(roleAdmin);
+      const owner = await member(t, 'owner');
+      const admin = await member(t, 'roleAdmin');
+      for (const permissions of [['tenant.billing'], ['nope.read']]) {
+        const res = await owner.b.post('tenant/roles', { name: `R ${suffix()}`, permissions });
+        expect([res.status, code(res.body)]).toEqual([422, 'VALIDATION_FAILED']);
+      }
+      const unheld = await admin.b.post('tenant/roles', {
+        name: `R ${suffix()}`,
+        permissions: ['payments.refund'],
+      });
+      expect(unheld.status).toBe(422);
+      const held = await admin.b.post('tenant/roles', {
+        name: `R ${suffix()}`,
+        permissions: ['clients.read'],
+      });
+      expect(held.status).toBe(201);
+      // The Designer role holds measurements.read, which the role admin lacks: they may keep
+      // it but not remove it.
+      const keep = await admin.b.send('patch', `tenant/roles/${t.roles.designer}`, {
+        permissions: ['measurements.read'],
+      });
+      expect(keep.status).toBe(200);
+      const remove = await admin.b.send('patch', `tenant/roles/${t.roles.designer}`, {
+        permissions: [],
+      });
+      expect(remove.status).toBe(422);
+    });
+
+    it('locks the Owner role and system roles, and roles in use', async () => {
+      const t = await atelier();
+      const owner = await member(t, 'owner');
+      const lock = await owner.b.send('patch', `tenant/roles/${t.roles.owner}`, { name: 'Boss' });
+      expect([lock.status, code(lock.body)]).toEqual([403, 'OWNER_ROLE_LOCKED']);
+
+      await asTenant(prisma, t.tenantId, (tx) =>
+        tx.role.update({ where: { id: t.roles.staff! }, data: { isSystem: true } }),
+      );
+      const system = await owner.b.send('delete', `tenant/roles/${t.roles.staff}`);
+      expect([system.status, code(system.body)]).toEqual([403, 'SYSTEM_ROLE_LOCKED']);
+
+      await member(t, 'designer');
+      const inUse = await owner.b.send('delete', `tenant/roles/${t.roles.designer}`);
+      expect([inUse.status, code(inUse.body)]).toEqual([409, 'ROLE_IN_USE']);
+
+      const invited = data(await owner.b.post('tenant/roles', { name: 'Intern', permissions: [] }));
+      await owner.b.post('tenant/invitations', {
+        email: `i-${suffix()}@example.test`,
+        roleId: invited.id,
+      });
+      const pending = await owner.b.send('delete', `tenant/roles/${invited.id as string}`);
+      expect([pending.status, code(pending.body)]).toEqual([409, 'ROLE_IN_USE']);
+    });
+
+    it('applies permission changes on the member’s next request', async () => {
+      const t = await atelier();
+      const owner = await member(t, 'owner');
+      const reader = data(
+        await owner.b.post('tenant/roles', { name: 'Reader', permissions: ['staff.read'] }),
+      );
+      const m = await member(t, 'staff');
+      await owner.b.send('patch', `tenant/staff/${m.membershipId}`, { roleId: reader.id });
+      expect((await m.b.get('tenant/staff')).status).toBe(200);
+      await owner.b.send('patch', `tenant/roles/${reader.id as string}`, { permissions: [] });
+      expect((await m.b.get('tenant/staff')).status).toBe(403);
+    });
+  });
 });

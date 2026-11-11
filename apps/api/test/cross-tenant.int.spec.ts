@@ -48,6 +48,8 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'StaffController.update': () => ({}),
   'TenantSettingsController.deleteHoliday': () => ({}),
   'InvitationsController.revoke': () => ({}),
+  'RolesController.update': () => ({ name: `Renamed ${suffix()}` }),
+  'RolesController.remove': () => ({}),
 };
 
 /** Realms whose routes act inside one atelier. Platform routes take tenant ids by design. */
@@ -107,9 +109,15 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         expiresAt: new Date(Date.now() + 3600_000),
       },
     });
+    const customRole = await asTenant(prisma, tenant.tenantId, (tx) =>
+      tx.role.create({
+        data: { tenantId: tenant.tenantId, key: `custom-${suffix()}`, name: `Custom ${suffix()}` },
+      }),
+    );
     return {
       tenant,
       resources: {
+        customRole: customRole.id,
         role: tenant.roles.staff!,
         membership: member.id,
         staffMember: colleague.id,
@@ -212,6 +220,8 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       expect.arrayContaining([
         'InvitationsController.create',
         'InvitationsController.revoke',
+        'RolesController.remove',
+        'RolesController.update',
         'AuthController.switchTenant',
         'StaffController.update',
         'TenantSettingsController.deleteHoliday',
