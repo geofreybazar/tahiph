@@ -228,16 +228,17 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  domains          TenantDomain[]
-  memberships      TenantMembership[]
-  roles            Role[]
-  auditLogs        TenantAuditLog[]
-  customerAccounts CustomerAccount[]
-  businessProfile  BusinessProfile?
-  settings         TenantSettings?
-  operatingHours   OperatingHours[]
-  holidays         Holiday[]
-  clients          Client[]
+  domains           TenantDomain[]
+  memberships       TenantMembership[]
+  roles             Role[]
+  auditLogs         TenantAuditLog[]
+  customerAccounts  CustomerAccount[]
+  businessProfile   BusinessProfile?
+  settings          TenantSettings?
+  operatingHours    OperatingHours[]
+  holidays          Holiday[]
+  clients           Client[]
+  garmentCategories GarmentCategory[]
 
   @@map("tenant")
 }
@@ -308,8 +309,9 @@ model TenantMembership {
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
   role   Role   @relation(fields: [tenantId, roleId], references: [tenantId, id], onDelete: Restrict)
 
-  clientNotes    ClientNote[]
-  communications Communication[]
+  clientNotes        ClientNote[]
+  communications     Communication[]
+  measurementRecords MeasurementRecord[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, userId])
@@ -488,9 +490,10 @@ model Client {
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  notes          ClientNote[]
-  communications Communication[]
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  notes              ClientNote[]
+  communications     Communication[]
+  measurementRecords MeasurementRecord[]
 
   @@unique([tenantId, id])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
@@ -538,4 +541,106 @@ model Communication {
   @@index([tenantId, clientId, occurredAt(sort: Desc)])
   @@index([tenantId, recordedByMembershipId])
   @@map("communication")
+}
+
+// ---------------------------------------------------------------------------
+// Measurements (tenant-owned, RLS). Templates are versioned; templates, fields, records and
+// values are immutable (trigger), so history is never rewritten (ADR-027).
+// ---------------------------------------------------------------------------
+
+model GarmentCategory {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  name       String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  templates MeasurementTemplate[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, name])
+  @@map("garment_category")
+}
+
+/// One version of a category's form. The current template is the highest version.
+model MeasurementTemplate {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  version    Int
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  category GarmentCategory     @relation(fields: [tenantId, categoryId], references: [tenantId, id], onDelete: Restrict)
+  fields   MeasurementField[]
+  records  MeasurementRecord[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, categoryId, version])
+  @@map("measurement_template")
+}
+
+model MeasurementField {
+  id         String  @id @default(uuid(7)) @db.Uuid
+  tenantId   String  @map("tenant_id") @db.Uuid
+  templateId String  @map("template_id") @db.Uuid
+  /// Stable within a template, e.g. "suit.sleeve_length".
+  key        String
+  label      String
+  /// Optional group heading on the form, e.g. "Trouser".
+  section    String?
+  sortOrder  Int     @map("sort_order")
+  required   Boolean @default(false)
+
+  template MeasurementTemplate @relation(fields: [tenantId, templateId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, templateId, key])
+  @@map("measurement_field")
+}
+
+/// A set of measurements taken once. Corrections are new records that supersede this one.
+model MeasurementRecord {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  tenantId            String          @map("tenant_id") @db.Uuid
+  clientId            String          @map("client_id") @db.Uuid
+  templateId          String          @map("template_id") @db.Uuid
+  unit                MeasurementUnit
+  /// "Measurement for" on paper forms, e.g. "Wedding, groom".
+  measuredFor         String?         @map("measured_for")
+  takenAt             DateTime        @map("taken_at") @db.Timestamptz(3)
+  takenByMembershipId String          @map("taken_by_membership_id") @db.Uuid
+  notes               String?
+  supersedesId        String?         @map("supersedes_id") @db.Uuid
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client       Client              @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  template     MeasurementTemplate @relation(fields: [tenantId, templateId], references: [tenantId, id], onDelete: Restrict)
+  takenBy      TenantMembership    @relation(fields: [tenantId, takenByMembershipId], references: [tenantId, id], onDelete: Restrict)
+  supersedes   MeasurementRecord?  @relation("Supersedes", fields: [tenantId, supersedesId], references: [tenantId, id], onDelete: Restrict)
+  supersededBy MeasurementRecord?  @relation("Supersedes")
+  values       MeasurementValue[]
+
+  @@unique([tenantId, id])
+  /// A record is corrected at most once, so history is a single chain.
+  @@unique([tenantId, supersedesId])
+  @@index([tenantId, clientId, takenAt(sort: Desc)])
+  @@index([tenantId, templateId])
+  @@index([tenantId, takenByMembershipId])
+  @@map("measurement_record")
+}
+
+model MeasurementValue {
+  tenantId String  @map("tenant_id") @db.Uuid
+  recordId String  @map("record_id") @db.Uuid
+  fieldKey String  @map("field_key")
+  /// numeric(7,3): 1/8" (0.125) is exact.
+  value    Decimal @db.Decimal(7, 3)
+
+  record MeasurementRecord @relation(fields: [tenantId, recordId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([recordId, fieldKey])
+  @@index([tenantId, recordId])
+  @@map("measurement_value")
 }

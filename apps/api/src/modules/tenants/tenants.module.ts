@@ -30,5 +30,6 @@ import {
     TenantSettingsService,
     RolesService,
   ],
+  exports: [TenantSettingsService],
 })
 export class TenantsModule {}

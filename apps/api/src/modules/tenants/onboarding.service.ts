@@ -7,6 +7,7 @@ import { ENV } from '../../core/config/config.module.js';
 import type { Env } from '../../core/config/env.js';
 import { UNSCOPED_PRISMA } from '../../core/database/tokens.js';
 import { DomainError } from '../../core/http/domain-error.js';
+import { seedDefaultMeasurementTemplates } from '../measurements/default-templates.js';
 import { AuthService, type RequestMeta, type StartedSession } from '../auth/auth.service.js';
 
 const DAY = 24 * 3600_000;
@@ -25,7 +26,8 @@ export interface AtelierCreated {
 /**
  * Creates an atelier in one transaction (docs/AUTHENTICATION_AND_AUTHORIZATION.md §3.1):
  * tenant + verified subdomain + system roles + the creator's OWNER membership + business
- * profile and default settings (ADR-024) + audit entry. Templates and workflows arrive with
+ * profile and default settings (ADR-024) + default garment categories and measurement
+ * templates (ADR-027) + audit entry. Templates and workflows arrive with
  * their modules.
  */
 @Injectable()
@@ -82,6 +84,7 @@ export class OnboardingService {
           data: { tenantId: tenant.id, displayName: tenant.name },
         });
         await tx.tenantSettings.create({ data: { tenantId: tenant.id } });
+        await seedDefaultMeasurementTemplates(tx, tenant.id);
         await tx.tenantAuditLog.create({
           data: {
             tenantId: tenant.id,

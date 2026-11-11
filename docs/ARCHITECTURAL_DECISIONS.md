@@ -303,3 +303,16 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Pagination** is keyset on `(created_at DESC, id DESC)` with an opaque base64url cursor (`core/http/cursor.ts`). A malformed cursor is a 422.
 - The cross-tenant suite gained `fresh` fixtures: kinds whose own-id control deletes them get a new id per request.
 **Consequences:** Notes and communications lists return the latest 200 without pagination (marked with `shortcut:`). Attachments, design references and order history arrive with uploads and Phase 4.
+
+## ADR-027 — Measurements: versioned templates and immutable records
+**Status:** Accepted (2026-11-11, product owner approved the Phase 3 step 5 scope and supplied the paper forms used as defaults)
+**Context:** Measurements must never be lost or overwritten (`PRODUCT_REQUIREMENTS.md` rule 2), templates differ per atelier and garment, and Q2 fixed values at `numeric(7,3)` with the unit on each record.
+**Decision:**
+- Tables: `garment_category`, `measurement_template` (category + version), `measurement_field` (key, label, optional section, order, required), `measurement_record`, `measurement_value` (migration `0008`).
+- **The current template is the highest version.** `UNIQUE(tenant_id, category_id, version)` makes concurrent saves safe: one wins, the other gets `409 TEMPLATE_CHANGED`. There is no `is_current` flag to keep in sync.
+- **Templates, fields, records and values are immutable**, enforced by `forbid_mutation()` triggers (from `0002`), including TRUNCATE on records and values. Corrections are new records with `supersedes_id`; `UNIQUE(tenant_id, supersedes_id)` keeps one linear chain per record, and a correction must belong to the same client.
+- **Field keys** are stable within a template and may carry a section prefix (`trouser.waistline`), because forms repeat labels across sections. Values are positive decimal strings with up to 3 decimals; there is no per-field min/max, since one range cannot fit both cm and inches.
+- **Defaults:** onboarding seeds two categories modelled on the product owner's paper forms: "Barong / Suit" (Suit, Vest, Trouser, Dress Shirt; 26 fields) and "Gown / Dress" (Gown, Pants; 28 fields). Existing ateliers (development data only) are not backfilled.
+- **Permissions:** categories and templates need `tenant.settings`; records need `measurements.read`/`measurements.write`. No new permission was added.
+- `MeasurementsModule` uses `ClientsService` and `TenantSettingsService` (exported) instead of reading their tables.
+**Consequences:** Unit conversion and storefront viewing are not built. Order items will snapshot records in Phase 4.

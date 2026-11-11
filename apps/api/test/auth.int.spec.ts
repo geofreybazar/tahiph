@@ -288,6 +288,21 @@ describe('Staff authentication (integration: real PostgreSQL)', () => {
         return (await tx.role.findMany({ select: { key: true } })).map((r) => r.key).sort();
       });
       expect(roleKeys).toEqual(['admin', 'designer', 'owner', 'staff', 'tailor']);
+      // Default garment categories with version-1 templates (ADR-027).
+      const categories = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${a.tenantId}, true)`;
+        return tx.garmentCategory.findMany({
+          orderBy: { name: 'asc' },
+          select: {
+            name: true,
+            templates: { select: { version: true, _count: { select: { fields: true } } } },
+          },
+        });
+      });
+      expect(categories).toEqual([
+        { name: 'Barong / Suit', templates: [{ version: 1, _count: { fields: 26 } }] },
+        { name: 'Gown / Dress', templates: [{ version: 1, _count: { fields: 28 } }] },
+      ]);
 
       // Profile and default settings are created with the atelier (ADR-024).
       const profileRes = await a.b.get('tenant/profile');

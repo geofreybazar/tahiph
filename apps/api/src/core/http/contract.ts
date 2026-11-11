@@ -27,7 +27,19 @@ export const ResponseSchema = (schema: z.ZodType, options: { paginated?: boolean
  * `customRole` is a role that can be deleted (not a system role, no members).
  */
 export type ResourceKind =
-  'role' | 'membership' | 'staffMember' | 'holiday' | 'invitation' | 'customer' | (string & {});
+  | 'role'
+  | 'customRole'
+  | 'membership'
+  | 'staffMember'
+  | 'holiday'
+  | 'invitation'
+  | 'customer'
+  | 'client'
+  | 'clientNote'
+  | 'garmentCategory'
+  | 'measurementTemplate'
+  | 'measurementRecord'
+  | (string & {});
 
 /**
  * Declares which path params and body fields are ids of tenant resources. The cross-tenant

@@ -20,6 +20,7 @@ import type { RouteInfo } from '../src/core/http/route-inventory.js';
 import { AuthModule } from '../src/modules/auth/auth.module.js';
 import { PlatformModule } from '../src/modules/platform/platform.module.js';
 import { ClientsModule } from '../src/modules/clients/clients.module.js';
+import { MeasurementsModule } from '../src/modules/measurements/measurements.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { Browser } from './browser.js';
 import {
@@ -59,6 +60,17 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'ClientsController.addNote': () => ({ body: 'Measured for a terno' }),
   'ClientsController.deleteNote': () => ({}),
   'ClientsController.communications': () => ({}),
+  'GarmentCategoriesController.rename': () => ({ name: `Barong ${suffix()}` }),
+  'GarmentCategoriesController.archive': () => ({}),
+  'GarmentCategoriesController.restore': () => ({}),
+  'GarmentCategoriesController.template': () => ({}),
+  'GarmentCategoriesController.saveTemplate': () => ({
+    fields: [{ key: 'chest', label: 'Chest' }],
+  }),
+  'MeasurementsController.template': () => ({}),
+  'MeasurementsController.list': () => ({}),
+  'MeasurementsController.create': () => ({ values: { chest: '96.5' } }),
+  'MeasurementsController.record': () => ({}),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
     direction: 'INBOUND',
@@ -146,10 +158,48 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         });
         return n.id;
       });
+    const { category, template } = await asTenant(prisma, tenant.tenantId, async (tx) => {
+      const c = await tx.garmentCategory.create({
+        data: { tenantId: tenant.tenantId, name: 'Barong' },
+      });
+      const t = await tx.measurementTemplate.create({
+        data: { tenantId: tenant.tenantId, categoryId: c.id, version: 1 },
+      });
+      await tx.measurementField.create({
+        data: {
+          tenantId: tenant.tenantId,
+          templateId: t.id,
+          key: 'chest',
+          label: 'Chest',
+          sortOrder: 0,
+        },
+      });
+      return { category: c, template: t };
+    });
+    // Records are corrected at most once, so each request gets its own.
+    const record = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const r = await tx.measurementRecord.create({
+          data: {
+            tenantId: tenant.tenantId,
+            clientId: client.id,
+            templateId: template.id,
+            unit: 'CM',
+            takenAt: new Date(),
+            takenByMembershipId: member.id,
+          },
+        });
+        await tx.measurementValue.create({
+          data: { tenantId: tenant.tenantId, recordId: r.id, fieldKey: 'chest', value: '96' },
+        });
+        return r.id;
+      });
     return {
       tenant,
-      fresh: { clientNote: note },
+      fresh: { clientNote: note, measurementRecord: record },
       resources: {
+        garmentCategory: category.id,
+        measurementTemplate: template.id,
         client: client.id,
         customRole: customRole.id,
         role: tenant.roles.staff!,
@@ -196,6 +246,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         AuthModule,
         TenantsModule,
         ClientsModule,
+        MeasurementsModule,
         PlatformModule,
       ],
     })
@@ -259,6 +310,9 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'ClientsController.update',
         'ClientsController.deleteNote',
         'ClientsController.addCommunication',
+        'GarmentCategoriesController.saveTemplate',
+        'MeasurementsController.create',
+        'MeasurementsController.record',
         'RolesController.update',
         'AuthController.switchTenant',
         'StaffController.update',

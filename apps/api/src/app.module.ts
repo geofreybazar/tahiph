@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PlatformModule } from './modules/platform/platform.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
+import { MeasurementsModule } from './modules/measurements/measurements.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
 
 /** HTTP API composition root. Domain modules are added here from Phase 2. */
@@ -22,6 +23,7 @@ import { TenantsModule } from './modules/tenants/tenants.module.js';
     AuthModule,
     TenantsModule,
     ClientsModule,
+    MeasurementsModule,
     PlatformModule,
   ],
 })

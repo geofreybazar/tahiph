@@ -16,6 +16,11 @@ export const TENANT_MODELS = {
   Client: 'client',
   ClientNote: 'client_note',
   Communication: 'communication',
+  GarmentCategory: 'garment_category',
+  MeasurementTemplate: 'measurement_template',
+  MeasurementField: 'measurement_field',
+  MeasurementRecord: 'measurement_record',
+  MeasurementValue: 'measurement_value',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

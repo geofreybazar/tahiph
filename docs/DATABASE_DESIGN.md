@@ -74,6 +74,8 @@
 - `MeasurementRecord`: clientId, templateId (version), unit, takenAt, takenBy, notes, `supersedesId?`. **Immutable** once saved (corrections create a new record).
 - `MeasurementValue`: recordId, fieldKey, value `numeric(7,3)`
 
+**Implemented (Phase 3, migration `0008_measurements`, ADR-027):** as above, with these changes: no `isCurrent` (the highest version is current); fields have an optional `section` and no `unitKind`/min/max; records have `measuredFor`; templates, fields, records and values are immutable by trigger.
+
 **Appointments**
 - `AppointmentType`: name, kind (`CONSULTATION`/`MEASUREMENT`/`DESIGN`/`FITTING`/`FINAL_FITTING`/`PICKUP`/`OTHER`), durationMin, bufferMin, publicBookable, color
 - `StaffAvailability`: membershipId, weekly rules + exceptions

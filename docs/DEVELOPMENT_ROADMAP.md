@@ -77,8 +77,8 @@ Work items:
 - [x] `fix/cross-tenant-suite`: the suite covers PUT/PATCH/DELETE and detects foreign updates. Merged 2026-11-11.
 - [x] `feat/tenant-settings-staff`: business profile, settings, opening hours, holidays, staff management, invitation list/revoke (ADR-024). Merged 2026-11-11.
 - [x] `feat/custom-roles`: custom role editing with no privilege escalation (ADR-025). Merged 2026-11-11.
-- [ ] `feat/clients` (in review): clients, notes and communication log (ADR-026).
-- [ ] Garment categories, measurement templates and immutable records.
+- [x] `feat/clients`: clients, notes and communication log (ADR-026). Merged 2026-11-11.
+- [ ] `feat/measurements` (in review): garment categories, versioned templates, immutable records (ADR-027). Meets the exit criterion "measurement revisions are immutable".
 - [ ] Appointments (types, availability, booking with the exclusion constraint, reminders).
 - [ ] Catalogue.
 - [ ] Uploads pipeline (needs a storage dependency decision and an ADR).
