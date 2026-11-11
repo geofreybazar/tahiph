@@ -217,7 +217,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
    - staff management beyond invitations (list, disable, change role), which is Phase 3.
 
 ## ADR-021 — Platform admin authentication
-**Status:** Proposed (2026-11-11, branch `feat/platform-auth`)
+**Status:** Accepted (2026-11-11, approved by the product owner)
 **Decision:**
 1. **TOTP is implemented in-house** (RFC 6238 on `node:crypto`: HMAC-SHA1, 30 s, 6 digits, ±1 step), checked against the RFC test vectors, so no dependency is needed.
    - Each accepted time step is stored (`platform_user.mfa_last_step`), so a code can never be used twice.

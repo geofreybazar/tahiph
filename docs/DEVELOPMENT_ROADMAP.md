@@ -56,7 +56,7 @@ Work items:
 - [x] RLS spike (ADR-018).
 - [x] Tenancy core: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). Merged.
 - [x] Staff auth on `feat/staff-auth`: register/verify/login/logout/reset, onboarding, invitations, switcher, CSRF, throttling, email queue (ADR-020). Merged.
-- [x] Platform auth on `feat/platform-auth`: password + mandatory TOTP, recovery codes, encrypted secrets, Super Admin CLI (ADR-021). In review.
+- [x] Platform auth on `feat/platform-auth`: password + mandatory TOTP, recovery codes, encrypted secrets, Super Admin CLI (ADR-021). Merged.
 - [ ] Customer auth (`feat/customer-auth`)
 
 **Exit criteria:**
