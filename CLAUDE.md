@@ -55,6 +55,7 @@ Read `docs/` before working on any area. Key docs:
 - Routes: `@Realm()` plus `@Public()`, `@Authenticated()`, `@ActiveMember()` (any active member, tenant realm) or `@RequirePermission()`, plus `@ResponseSchema()`. The API won't start otherwise. Return plain data; the interceptor parses it with the response schema.
 - Ids of tenant resources in a request (path params, uuid body fields) must be declared with `@References({ field: 'kind' })`, and the route needs a sample in `test/cross-tenant.int.spec.ts` (plus a fixture for a new resource kind).
 - Integration tests run as a non-superuser, non-BYPASSRLS role. Use `apps/api/test/fixtures.ts` (unique data, no cleanup) and `test/browser.ts` (cookies + CSRF) for HTTP flows.
+- Background work for a tenant runs through `TenantJobRunner.run(tenantId, fn)` (ADR-029); never set `tenantId` in CLS by hand.
 - Every non-GET browser request needs `Origin` + `X-CSRF-Token` (from `GET /api/v1/auth/csrf`). Emails go through `MAILER` (BullMQ queue), never sent inline.
 
 ## Conventions

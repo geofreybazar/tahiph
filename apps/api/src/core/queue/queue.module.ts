@@ -32,7 +32,11 @@ import { QUEUES } from './queues.js';
         };
       },
     }),
-    BullModule.registerQueue({ name: QUEUES.maintenance }, { name: QUEUES.email }),
+    BullModule.registerQueue(
+      { name: QUEUES.maintenance },
+      { name: QUEUES.email },
+      { name: QUEUES.reminders },
+    ),
   ],
   exports: [BullModule],
 })

@@ -1,3 +1,4 @@
+import { OPERATIONAL_TENANT_STATUSES } from '../../core/tenancy/operational.js';
 import { HttpStatus, Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { withUserScope, type DatabaseClient } from '@tahi/database';
 import type {
@@ -27,7 +28,6 @@ import {
 import * as emails from './emails.js';
 
 /** Tenant statuses whose members can work in the dashboard. */
-const OPERATIONAL_TENANT = new Set(['TRIAL', 'ACTIVE', 'PAST_DUE']);
 
 const inviteMetadataSchema = z.object({ roleId: z.uuid() });
 
@@ -221,7 +221,7 @@ export class AuthService implements OnModuleInit {
     membershipId?: string,
   ): Promise<StartedSession> {
     const usable = (await this.listMemberships(userId)).filter(
-      (m) => m.status === 'ACTIVE' && OPERATIONAL_TENANT.has(m.atelier.status),
+      (m) => m.status === 'ACTIVE' && OPERATIONAL_TENANT_STATUSES.has(m.atelier.status),
     );
     const chosen = membershipId
       ? usable.find((m) => m.membershipId === membershipId)
@@ -382,7 +382,7 @@ export class AuthService implements OnModuleInit {
       where: { id: tenantId },
       select: { status: true },
     });
-    if (!tenant || !OPERATIONAL_TENANT.has(tenant.status)) throw new InvalidTokenError();
+    if (!tenant || !OPERATIONAL_TENANT_STATUSES.has(tenant.status)) throw new InvalidTokenError();
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {

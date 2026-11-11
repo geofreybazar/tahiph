@@ -157,8 +157,12 @@ describe('Appointments (integration)', () => {
   });
 
   it('reschedules in place, keeping length and buffer, and never into a clash', async () => {
-    const { tailor, designer, owner, book } = await setup();
+    const { t, tailor, designer, owner, book } = await setup();
     const a = data(await book(tailor.membershipId, at('10:00'))).id as string;
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${t.tenantId}, true)`;
+      await tx.appointment.update({ where: { id: a }, data: { reminderSentAt: new Date() } });
+    });
     await book(tailor.membershipId, at('13:00'));
     const clash = await owner.b.post(`tenant/appointments/${a}/reschedule`, {
       startsAt: at('12:30'),
@@ -174,6 +178,15 @@ describe('Appointments (integration)', () => {
       blockedUntil: '2031-06-02T08:15:00.000Z',
       staff: { membershipId: designer.membershipId },
     });
+    // The new time gets its own reminder (ADR-029).
+    const after = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${t.tenantId}, true)`;
+      return tx.appointment.findUniqueOrThrow({
+        where: { id: a },
+        select: { reminderSentAt: true },
+      });
+    });
+    expect(after.reminderSentAt).toBeNull();
     // The old time is free again for the tailor.
     expect((await book(tailor.membershipId, at('10:00'))).status).toBe(201);
   });

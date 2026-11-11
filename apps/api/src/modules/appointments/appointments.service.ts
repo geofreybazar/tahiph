@@ -406,6 +406,8 @@ export class AppointmentsService {
             startsAt,
             endsAt: new Date(a.endsAt.getTime() + shift),
             blockedUntil: new Date(a.blockedUntil.getTime() + shift),
+            // The new time gets its own reminder (ADR-029).
+            reminderSentAt: null,
             ...(input.staffMembershipId ? { staffMembershipId: input.staffMembershipId } : {}),
           },
           include: APPOINTMENT_INCLUDE,

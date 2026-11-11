@@ -159,6 +159,8 @@ abstract class TenantJobProcessor<T extends { tenantId: string }> {
 }
 ```
 
+**Implemented (ADR-029):** `TenantJobRunner` (`apps/api/src/core/tenancy/tenant-job-runner.ts`) does this as an injectable runner: `runner.run(tenantId, fn)`. Platform jobs list tenants with `operationalTenantIds()` and fan out one job per tenant.
+
 ## 9. Tenant lifecycle
 
 `PENDING_APPROVAL → TRIAL → ACTIVE ⇄ PAST_DUE → SUSPENDED → (CANCELLED) → ARCHIVED`

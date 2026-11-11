@@ -78,6 +78,7 @@ export const updateTenantSettingsRequestSchema = z
     vatRegistered: z.boolean(),
     taxRate: taxRateSchema,
     pricesIncludeTax: z.boolean(),
+    appointmentReminders: z.boolean(),
   })
   .partial()
   .strict()
@@ -91,6 +92,7 @@ export const tenantSettingsSchema = z.object({
   /** Always two decimals, e.g. "12.00". */
   taxRate: z.string(),
   pricesIncludeTax: z.boolean(),
+  appointmentReminders: z.boolean(),
   updatedAt: z.iso.datetime(),
 });
 

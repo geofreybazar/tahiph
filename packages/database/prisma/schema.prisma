@@ -438,18 +438,20 @@ model BusinessProfile {
 }
 
 model TenantSettings {
-  id               String          @id @default(uuid(7)) @db.Uuid
-  tenantId         String          @unique @map("tenant_id") @db.Uuid
+  id                   String          @id @default(uuid(7)) @db.Uuid
+  tenantId             String          @unique @map("tenant_id") @db.Uuid
   /// IANA time zone; dates and opening hours are interpreted in it.
-  timezone         String          @default("Asia/Manila")
-  currency         String          @default("PHP") @db.Char(3)
-  measurementUnit  MeasurementUnit @default(CM) @map("measurement_unit")
-  vatRegistered    Boolean         @default(false) @map("vat_registered")
+  timezone             String          @default("Asia/Manila")
+  currency             String          @default("PHP") @db.Char(3)
+  measurementUnit      MeasurementUnit @default(CM) @map("measurement_unit")
+  vatRegistered        Boolean         @default(false) @map("vat_registered")
   /// Percentage, e.g. 12.00 for 12% VAT.
-  taxRate          Decimal         @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  pricesIncludeTax Boolean         @default(true) @map("prices_include_tax")
-  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  taxRate              Decimal         @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  pricesIncludeTax     Boolean         @default(true) @map("prices_include_tax")
+  /// Email clients a reminder up to 24 hours before appointments (ADR-029).
+  appointmentReminders Boolean         @default(true) @map("appointment_reminders")
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
 
@@ -748,6 +750,8 @@ model Appointment {
   source            AppointmentSource @default(DASHBOARD)
   notes             String?
   cancelReason      String?           @map("cancel_reason")
+  /// Set when the reminder email is queued; cleared on reschedule (ADR-029).
+  reminderSentAt    DateTime?         @map("reminder_sent_at") @db.Timestamptz(3)
   createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 

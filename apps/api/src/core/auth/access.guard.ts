@@ -1,3 +1,4 @@
+import { OPERATIONAL_TENANT_STATUSES } from '../tenancy/operational.js';
 import {
   Inject,
   Injectable,
@@ -28,9 +29,6 @@ const SESSION_REALM: Record<'tenant' | 'platform' | 'customer', SessionRealm> = 
   platform: 'PLATFORM',
   customer: 'CUSTOMER',
 };
-
-/** Tenant statuses with full dashboard access (docs/MULTI_TENANCY.md §9). */
-const OPERATIONAL_TENANT = new Set(['TRIAL', 'ACTIVE', 'PAST_DUE']);
 
 /**
  * The single global guard (docs/AUTHENTICATION_AND_AUTHORIZATION.md §7.3):
@@ -116,7 +114,7 @@ export class AccessGuard implements CanActivate {
       where: { id: session.tenantId },
       select: { status: true },
     });
-    if (!tenant || !OPERATIONAL_TENANT.has(tenant.status)) return null;
+    if (!tenant || !OPERATIONAL_TENANT_STATUSES.has(tenant.status)) return null;
 
     // Read the membership under the session's tenant, through RLS.
     this.cls.set('tenantId', session.tenantId);

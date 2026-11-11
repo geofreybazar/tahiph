@@ -35,6 +35,7 @@ const SETTINGS_SELECT = {
   vatRegistered: true,
   taxRate: true,
   pricesIncludeTax: true,
+  appointmentReminders: true,
   updatedAt: true,
 } as const;
 

@@ -330,3 +330,16 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - The cross-tenant suite now also checks uuid query parameters.
 - Deferred: booking rules (lead time, max days ahead) and "any available staff" to Phase 5; the order link to Phase 4; reminders to step 6b.
 **Consequences:** Adding time off does not move existing appointments; the calendar shows the clash for staff to resolve.
+
+## ADR-029 — Appointment reminders and tenant-scoped background jobs
+**Status:** Accepted (2026-11-11, product owner approved step 6b, reminders on by default and the 1-hour minimum lead)
+**Context:** Clients should get an email before their appointment. This is the first tenant-scoped background job, so it also sets the pattern from `MULTI_TENANCY.md` §8.
+**Decision:**
+- **`TenantJobRunner`** (`core/tenancy/`) runs work inside one tenant: it re-checks that the tenant exists and is operational, then opens a fresh CLS context with the tenant id, so `TENANT_DB` and RLS apply as in a request. Non-operational tenants are skipped, not failed. It is an injectable runner instead of the base class sketched in §8, so one processor can mix platform and tenant jobs. `OPERATIONAL_TENANT_STATUSES` is now one shared constant.
+- **Sweep:** a repeatable `sweep` job on the `reminders` queue runs every 10 minutes and fans out one `tenant` job per operational tenant, with job id `reminders:{tenantId}:{10-minute window}` so repeated sweeps do not duplicate work.
+- **Selection:** `PENDING`/`CONFIRMED`, `reminder_sent_at IS NULL`, the client has an email, and the start is more than 1 hour and at most 24 hours away.
+- **Exactly-once intent:** each appointment is claimed with `UPDATE … WHERE reminder_sent_at IS NULL` before its email is queued; if queueing fails the claim is released and the job retries. A crash between claim and enqueue can drop one reminder but never duplicate one.
+- Rescheduling clears `reminder_sent_at`, so the new time gets its own reminder.
+- `tenant_settings.appointment_reminders` (default on) turns reminders off per atelier.
+- The worker loads `RemindersWorkerModule`, which provides only the services it needs (no controllers).
+**Consequences:** One reminder per appointment, English only, no cancel link until the storefront exists (Phase 5).
