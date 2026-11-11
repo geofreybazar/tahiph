@@ -1,0 +1,96 @@
+# Development Roadmap — TAHI.ph
+
+> **Status:** Phase 0 in review. All later phases are planned, not started.
+> Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
+
+| Phase | Name | Status |
+|---|---|---|
+| 0 | Product discovery & architecture | **In review** |
+| 1 | Project foundation | Not started |
+| 2 | Authentication & multi-tenancy | Not started |
+| 3 | Tenant business management | Not started |
+| 4 | Sales & operations | Not started |
+| 5 | Personalized storefront | Not started |
+| 6 | Financial & subscription management | Not started |
+| 7 | Platform administration | Not started |
+| 8 | Production readiness | Not started |
+
+## Phase 0 — Discovery & architecture
+**Deliverables:** the documents in `docs/`.
+**Exit criteria:** architecture approved, and open questions Q1–Q10 answered or accepted with defaults.
+
+## Phase 1 — Project foundation
+Work items:
+- Turborepo + npm workspaces; shared `packages/config` (tsconfig, ESLint flat config, Prettier).
+- Pin versions after a compatibility check: Node LTS, Next.js, NestJS, Prisma, Zod, PostgreSQL major.
+- Scaffold `apps/dashboard`, `apps/storefront`, `apps/admin` (Next.js App Router, Tailwind, shadcn/ui), and `apps/api` with the HTTP and worker entrypoints.
+- `packages/database` (Prisma, empty initial migration, roles/extensions init SQL), `packages/validation`, `packages/types`, `packages/utils`.
+- API core: config validation, CLS context, Pino logging, exception filter, response envelope, health endpoints.
+- Docker:
+  - local Compose (postgres, redis, mailpit, minio);
+  - Dockerfiles for all apps;
+  - a prod Compose skeleton with Traefik.
+- Vitest across workspaces; Supertest harness with an ephemeral DB.
+- GitHub Actions CI (lint, typecheck, test, build). No deploy yet.
+
+**Exit criteria:**
+- `npm ci && turbo lint typecheck test build` passes.
+- `docker compose up` brings up all services healthy locally.
+- CI is green.
+
+## Phase 2 — Authentication & multi-tenancy
+Work items:
+- Prisma schema slice: User, PlatformUser, Session, AuthToken, Tenant, TenantDomain, TenantMembership, Role, RolePermission, AuditLog, TenantAuditLog.
+- **Spike:** Prisma tenant extension + RLS benchmark (ADR outcome).
+- Tenant resolution middleware, realm guard, session guard, permission guard, deny-by-default.
+- Staff register/verify/login/logout/reset; invitations; tenant onboarding; atelier switcher.
+- Platform admin login with TOTP; Super Admin seed CLI.
+- Customer OTP login (storefront realm).
+- **Cross-tenant test suite** + RLS checks in CI.
+
+**Exit criteria:**
+- Cross-tenant suite passes for every route.
+- RLS check passes for every tenant table.
+- Auth flows covered by integration tests.
+- Throttling verified.
+
+## Phase 3 — Tenant business management
+Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
+
+**Exit criteria:** the double-booking concurrency test passes (parallel inserts → exactly one succeeds); measurement revisions are immutable; uploads are validated.
+
+## Phase 4 — Sales & operations
+Quotations (revisions, send link, accept/reject, expiry job); quotation → order conversion (transactional, idempotent); orders with snapshots and timeline; production workflows/stages/jobs/assignments; fittings and alterations; **manual payment recording** with acknowledgment receipts; balances; refunds (manual); email notifications; business dashboard KPIs.
+
+**Exit criteria:** an end-to-end Playwright journey (inquiry → quotation → order → production → payment → release) passes.
+
+## Phase 5 — Personalized storefront
+Host-based tenant resolution; theming; sections; portfolio, collections, testimonials; services; inquiry and quotation request forms (Turnstile); public appointment booking; customer order tracking; SEO (metadata, sitemap, OG, JSON-LD); ISR + revalidation; custom-domain foundation (TenantDomain verification, Cloudflare for SaaS integration behind a feature flag).
+
+**Exit criteria:** Lighthouse ≥ 90 performance and accessibility on the template; cross-host isolation tests pass.
+
+## Phase 6 — Financial & subscription management
+**Prerequisite:** PayMongo answers P1–P9 (see `PAYMENT_ARCHITECTURE.md` §7).
+
+Plans and features; subscriptions; billing engine jobs; SaaS invoices and checkout; PayMongo provider adapter; webhook ingress (idempotent); tenant merchant onboarding (child accounts or the OWN_KEYS fallback); online customer payments; split/fee ledger; refunds via provider; reconciliation jobs; financial reports per ledger.
+
+**Exit criteria:**
+- Webhook replay and duplicate tests pass.
+- Signature-forgery test passes.
+- Reconciliation detects injected mismatches.
+- Ledgers are verified as separated.
+
+## Phase 7 — Platform administration
+Super Admin dashboard (tenants, MRR/ARR, trials); tenant management (approve, suspend, audited data access); plan and subscription admin; revenue, failed payments, refunds; platform settings, feature flags, announcements; support tickets; audit log viewer.
+
+## Phase 8 — Production readiness
+Security testing (ZAP, ASVS review, optional pentest); performance testing (k6) and query tuning; monitoring and alerting; backup automation and restore drill; full CD with staging and production environments; VPS hardening verification; documentation review; launch checklist.
+
+## Dependency graph
+
+```
+0 → 1 → 2 → 3 → 4 → 5
+              └──────► 6 (needs 4 for customer payments; billing part only needs 2)
+                        7 (needs 2 + 6 for revenue views)
+                        8 (continuous, finalized last)
+```

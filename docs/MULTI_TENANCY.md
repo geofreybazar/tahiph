@@ -1,0 +1,167 @@
+# Multi-Tenancy — TAHI.ph
+
+> **Status:** Proposed (Phase 0). Implementation planned for Phase 2.
+
+## 1. Model
+
+**Shared database, shared schema.** Every tenant-owned row carries `tenant_id UUID NOT NULL`. Isolation is enforced in **four independent layers**, so a bug in one layer does not leak data.
+
+| Layer | Mechanism | Catches |
+|---|---|---|
+| 1. Context resolution | Tenant derived server-side from session or Host; never from client input | Forged `tenantId` in body/query/header |
+| 2. Scoped data access | Prisma client extension auto-filters and auto-stamps `tenant_id` | Developer forgets a `where tenantId` |
+| 3. Row-Level Security | PostgreSQL policies keyed on `app.tenant_id` | Raw SQL, extension bypass, ORM bugs |
+| 4. Composite foreign keys | `(tenant_id, x_id) → x(tenant_id, id)` | Cross-tenant references (e.g. an order pointing to another tenant's client) |
+
+Plus **automated cross-tenant tests** in CI (section 7).
+
+## 2. Platform vs tenant data
+
+| Category | Examples | `tenant_id` | RLS |
+|---|---|---|---|
+| Platform-global | `PlatformUser`, `SubscriptionPlan`, `PlatformSetting`, `AuditLog` | — | No (not reachable by the tenant role) |
+| Identity (global) | `User`, `Session` | — | No; access only by own id |
+| Tenant registry | `Tenant`, `TenantDomain`, `Subscription`, `SubscriptionInvoice`, `PlatformTransaction` | `Tenant.id` / FK | Read-only to the owning tenant via dedicated endpoints |
+| Tenant-owned | `Client`, `Order`, `Appointment`, `OrderPayment`, … | Yes | **Yes, FORCE** |
+| Bridge | `TenantMembership` | Yes | Yes |
+
+`Subscription` and `PlatformTransaction` belong to TAHI's ledger even though they reference a tenant. Tenants can see their own billing history but never modify it.
+
+## 3. Tenant resolution
+
+A single `TenantResolutionMiddleware` (runs before guards) produces a `RequestContext`:
+
+```ts
+type RequestContext = {
+  requestId: string;
+  realm: 'platform' | 'tenant' | 'public' | 'customer';
+  tenantId?: string;          // set only by this middleware / session guard
+  userId?: string;            // tenant staff User or PlatformUser
+  membershipId?: string;
+  customerAccountId?: string;
+  permissions: ReadonlySet<Permission>;
+};
+```
+
+| Realm | Host | How `tenantId` is determined |
+|---|---|---|
+| tenant | `app.tahi.ph` | From the session's `activeMembershipId`. The membership must be `ACTIVE` and its tenant `ACTIVE`/`TRIAL`. Switching ateliers is `POST /api/v1/tenant/session/switch`, which re-validates the membership. |
+| public / customer | `{slug}.tahi.ph` or custom domain | `Host` → `TenantDomain(hostname)`, verified and active. Cached in Redis for 5 min and invalidated on change. Unknown host → 404. |
+| platform | `admin.tahi.ph` | None. Cross-tenant operations specify the tenant **in the URL** and pass a `platform.tenants.access` permission check plus an audit write. |
+
+- **Hard rule:** no DTO schema in `packages/validation` contains a `tenantId` field for tenant-realm endpoints. A lint rule enforces this.
+- A customer session is bound to a single tenant. A customer cookie presented on another tenant's host is rejected.
+
+## 4. Scoped data access (Prisma)
+
+```ts
+// packages/database — illustrative, finalized in Phase 2
+export const TENANT_MODELS = new Set<Prisma.ModelName>([...]); // generated list
+
+prisma.$extends({
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        if (!TENANT_MODELS.has(model)) return query(args);
+        const tenantId = cls.get('tenantId');
+        if (!tenantId) throw new MissingTenantContextError(model, operation);
+        // inject into where / data / create, reject explicit mismatching tenantId
+        return runWithRls(tenantId, () => query(scope(args, tenantId, operation)));
+      },
+    },
+  },
+});
+```
+
+Rules:
+- The API injects only the **tenant-scoped client**. The unscoped client is available only to `TenantsModule`, `AuthModule` and platform modules, through an explicitly named provider (`UNSCOPED_PRISMA`). Its usage is grep-auditable.
+- `findUnique` by id is rewritten to `findFirst({ id, tenantId })`, or the composite unique `(tenant_id, id)` is used.
+- Missing tenant context on a tenant model is a **hard error**, never a silent empty result.
+- Raw SQL (`$queryRaw`) is allowed only inside repositories that run inside `runWithRls`.
+
+## 5. PostgreSQL Row-Level Security
+
+### Roles
+| Role | Used by | Privileges |
+|---|---|---|
+| `tahi_owner` | Migrations (one-shot `migrate` job) | Owns schema and tables |
+| `tahi_app` | api, worker | DML on tables. **Not owner, not superuser, `NOBYPASSRLS`.** |
+| `tahi_platform` | Platform admin cross-tenant reads (Phase 7) | Policy allows all tenants; every use is audited at the app level |
+| `tahi_backup` | Backup job | Read-only, `BYPASSRLS` for dumps |
+
+### Policy (per tenant table)
+```sql
+ALTER TABLE client ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON client
+  USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
+  WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+```
+If `app.tenant_id` is unset, `current_setting(..., true)` returns NULL and the policy matches **no rows**, so the failure is closed.
+
+### Setting the context
+Each tenant-scoped operation runs inside a transaction that first executes:
+```sql
+SELECT set_config('app.tenant_id', $1, true);  -- true = transaction-local (SET LOCAL)
+```
+- Transaction-local settings are safe with connection pooling (including PgBouncer in transaction mode).
+- Interactive transactions opened by services (`prisma.$transaction(async tx => …)`) go through a `TenantTransaction` helper that sets the config once at the start.
+
+### Known trade-off (Risk R1)
+Wrapping every query in a transaction adds a round trip. A **Phase 2 spike** will benchmark it. If the overhead is unacceptable, the fallback is to keep RLS enabled but set the context once per request-scoped interactive transaction for write paths, and rely on layer 2 for reads. The decision gets recorded in an ADR.
+
+RLS policies are maintained as raw SQL in Prisma migrations, plus a CI check that fails if any table with a `tenant_id` column lacks an enabled-and-forced policy.
+
+## 6. Composite keys and uniqueness
+
+- Every tenant table has `UNIQUE (tenant_id, id)`, which is what composite FKs reference.
+- Child relations use composite FKs, e.g.:
+  ```sql
+  FOREIGN KEY (tenant_id, client_id) REFERENCES client (tenant_id, id)
+  ```
+  In Prisma: `client Client @relation(fields: [tenantId, clientId], references: [tenantId, id])`.
+- Business uniques are tenant-scoped: `(tenant_id, order_number)`, `(tenant_id, email)` on clients (partial, where not archived), `(tenant_id, slug)` on products.
+- Every index on a tenant table leads with `tenant_id`.
+
+## 7. Cross-tenant test suite (mandatory, CI)
+
+1. Fixture: tenants **A** and **B**, each with an owner, a staff member, a client, an order, an appointment and a payment.
+2. For **every** tenant-realm route (enumerated from the Nest router at test time, so new routes are covered automatically):
+   - Acting as A, access B's resource ids. Expect **404** (existence is not disclosed).
+   - Acting as A, `POST`/`PATCH` with B's ids in the body (e.g. `clientId`). Expect 404/422, and assert nothing was written.
+3. Storefront: request A's resource ids via B's host. Expect 404.
+4. RLS: connect as `tahi_app`, run raw `SELECT` without `app.tenant_id`. Expect 0 rows. With A's id, expect only A's rows. An insert with a mismatched `tenant_id` is rejected.
+5. Worker: enqueue a job for A that references B's id. Expect a not-found failure.
+6. Lint/static checks:
+   - no `tenantId` in tenant DTOs;
+   - `UNSCOPED_PRISMA` imported only in allow-listed modules;
+   - every tenant table has an RLS policy.
+
+## 8. Background jobs
+
+```ts
+abstract class TenantJobProcessor<T extends { tenantId: string }> {
+  async process(job: Job<T>) {
+    return this.cls.run(async () => {
+      this.cls.set('tenantId', job.data.tenantId);   // re-validated: tenant exists & active
+      this.cls.set('realm', 'tenant');
+      return this.handle(job);
+    });
+  }
+}
+```
+
+## 9. Tenant lifecycle
+
+`PENDING_APPROVAL → TRIAL → ACTIVE ⇄ PAST_DUE → SUSPENDED → (CANCELLED) → ARCHIVED`
+
+| State | Dashboard | Storefront | API writes |
+|---|---|---|---|
+| PENDING_APPROVAL | Onboarding only | Offline | Onboarding only |
+| TRIAL / ACTIVE | Full | Online | Yes |
+| PAST_DUE | Full + banner (grace period) | Online | Yes |
+| SUSPENDED | Read-only + billing page | "Temporarily unavailable" page | Billing only |
+| CANCELLED | Data export only | Offline | No |
+| ARCHIVED | — | — | Data retained per retention policy, then anonymized/purged |
+
+Status is checked in the session guard, cached briefly in Redis, and invalidated on change.
