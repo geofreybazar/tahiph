@@ -284,7 +284,8 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       }
       for (const field of Object.keys(route.references)) {
         const kind = route.references[field]!;
-        const send = async (owner: Side) => {
+        /** Resolves the ids first (fresh fixtures write), then returns the request to fire. */
+        const prepare = async (owner: Side) => {
           let path = route.path.replace(/^\/api\/v1\//, '');
           const body: Record<string, unknown> = SAMPLES[route.operationId]!();
           for (const [f, k] of Object.entries(route.references)) {
@@ -295,17 +296,19 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
             else body[f] = id;
           }
-          return route.method === 'GET'
-            ? actorBrowser.get(path)
-            : actorBrowser.send(
-                route.method.toLowerCase() as 'post' | 'put' | 'patch' | 'delete',
-                path,
-                body,
-              );
+          return () =>
+            route.method === 'GET'
+              ? actorBrowser.get(path)
+              : actorBrowser.send(
+                  route.method.toLowerCase() as 'post' | 'put' | 'patch' | 'delete',
+                  path,
+                  body,
+                );
         };
 
+        const sendForeign = await prepare(B);
         const before = await footprint(B.tenant);
-        const foreign = await send(B);
+        const foreign = await sendForeign();
         const after = await footprint(B.tenant);
         if (foreign.status !== 404)
           failures.push(`${route.operationId} ${field}→${kind}: foreign id gave ${foreign.status}`);
@@ -313,7 +316,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
           failures.push(`${route.operationId} ${field}: wrote to the other atelier`);
         }
         // Positive control: the request is otherwise valid, so the 404 above is tenancy.
-        const own = await send(A);
+        const own = await (await prepare(A))();
         if (own.status === 404 || own.status === 422 || own.status >= 500) {
           failures.push(
             `${route.operationId} ${field}: own id gave ${own.status} (sample broken?)`,
