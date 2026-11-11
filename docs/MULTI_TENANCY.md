@@ -55,7 +55,7 @@ type RequestContext = {
 ## 4. Scoped data access (Prisma)
 
 ```ts
-// packages/database — illustrative, finalized in Phase 2
+// packages/database — illustrative; the spike-validated version is in spikes/prisma-rls/lib.ts (ADR-018)
 export const TENANT_MODELS = new Set<Prisma.ModelName>([...]); // generated list
 
 prisma.$extends({
@@ -77,7 +77,7 @@ Rules:
 - The API injects only the **tenant-scoped client**. The unscoped client is available only to `TenantsModule`, `AuthModule` and platform modules, through an explicitly named provider (`UNSCOPED_PRISMA`). Its usage is grep-auditable.
 - `findUnique` by id is rewritten to `findFirst({ id, tenantId })`, or the composite unique `(tenant_id, id)` is used.
 - Missing tenant context on a tenant model is a **hard error**, never a silent empty result.
-- Raw SQL (`$queryRaw`) is allowed only inside repositories that run inside `runWithRls`.
+- Raw SQL (`$queryRaw`) is allowed only inside `withTenantTx`, via `db()`.
 
 ## 5. PostgreSQL Row-Level Security
 
@@ -94,10 +94,10 @@ Rules:
 ALTER TABLE client ENABLE ROW LEVEL SECURITY;
 ALTER TABLE client FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON client
-  USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-  WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+  USING      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 ```
-If `app.tenant_id` is unset, `current_setting(..., true)` returns NULL and the policy matches **no rows**, so the failure is closed.
+If `app.tenant_id` is unset, the expression is NULL and the policy matches **no rows**, so the failure is closed. The `nullif` is required: once a pooled connection has seen the setting, its unset value is `''`, and a bare `''::uuid` cast raises an error (found in the Phase 2 spike, ADR-018).
 
 ### Setting the context
 Each tenant-scoped operation runs inside a transaction that first executes:
@@ -105,10 +105,13 @@ Each tenant-scoped operation runs inside a transaction that first executes:
 SELECT set_config('app.tenant_id', $1, true);  -- true = transaction-local (SET LOCAL)
 ```
 - Transaction-local settings are safe with connection pooling (including PgBouncer in transaction mode).
-- Interactive transactions opened by services (`prisma.$transaction(async tx => …)`) go through a `TenantTransaction` helper that sets the config once at the start.
+- By default the scoped client wraps **each operation** in a batch transaction (`BEGIN; set_config; query; COMMIT`).
+- Multi-statement units of work use `withTenantTx(fn)`. It sets the config once and publishes the transaction client in the CLS context; nested calls join it. No external I/O inside.
+- Services obtain the client through `db()`: the ambient transaction if one is open, else the scoped client. Services never call `prisma.$transaction` directly.
+- Prisma queries are lazy (they run on `await`), so context helpers must await inside the context. Otherwise the query fails with `MissingTenantContextError`.
 
-### Known trade-off (Risk R1)
-Wrapping every query in a transaction adds a round trip. A **Phase 2 spike** will benchmark it. If the overhead is unacceptable, the fallback is to keep RLS enabled but set the context once per request-scoped interactive transaction for write paths, and rely on layer 2 for reads. The decision gets recorded in an ADR.
+### Measured trade-off (Risk R1, ADR-018)
+The Phase 2 spike measured about 3× the latency of an unprotected query for per-operation transactions (3.5 ms vs 1.2 ms for a five-query request locally), and about 1.4× with one transaction per unit of work. Both are acceptable at TAHI's scale, so RLS stays on for reads and writes. Re-measure on the VPS in Phase 8.
 
 RLS policies are maintained as raw SQL in Prisma migrations, plus a CI check that fails if any table with a `tenant_id` column lacks an enabled-and-forced policy.
 

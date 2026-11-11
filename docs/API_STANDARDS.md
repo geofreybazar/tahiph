@@ -32,7 +32,7 @@ apps/api/src/
 ├── core/
 │   ├── config/                Zod-validated env
 │   ├── context/               nestjs-cls RequestContext, tenant resolution middleware
-│   ├── database/              PrismaModule: scoped + UNSCOPED clients, TenantTransaction
+│   ├── database/              PrismaModule: scoped + UNSCOPED clients, withTenantTx, db()
 │   ├── auth/                  SessionGuard, RealmGuard, PermissionGuard, decorators
 │   ├── http/                  ZodValidationPipe, exception filter, envelope interceptor
 │   ├── logging/               nestjs-pino setup, redaction

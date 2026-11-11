@@ -144,3 +144,29 @@ All versions are pinned exactly (no ranges) in `package.json` files.
 ## ADR-017 — Library build layout (`tsconfig.json` vs `tsconfig.build.json`)
 **Status:** Accepted (2026-11-11)
 **Decision:** In each package, `tsconfig.json` (noEmit) covers all sources including tests and is used by the editor, `tsc` typecheck and type-aware ESLint. `tsconfig.build.json` emits `dist/` and excludes specs. Internal packages are consumed as built ESM from `dist/` (Turborepo `^build` ordering), so the API runs plain Node without path aliases.
+
+## ADR-018 — Tenant data access strategy: RLS on every path, per-operation transactions by default
+**Status:** Proposed (2026-11-11, Phase 2 spike; awaiting product-owner approval)
+**Context:** Risk R1. Prisma has no hook to set `app.tenant_id` on a connection, so every RLS-protected query must run in a transaction that calls `set_config(..., true)` first. The spike (`spikes/prisma-rls/`) measured the cost and tested correctness against PostgreSQL 18 with Prisma 7.10.1 and `@prisma/adapter-pg`.
+**Results** (local Unix socket, pool of 10; one request = 1 list of 20 rows + 4 lookups by id; two runs agreed within 2%):
+
+| Strategy | p50 at c=1 | p95 at c=16 | req/s at c=16 |
+|---|---|---|---|
+| Baseline: no RLS, explicit `where tenantId` | 1.16 ms | 11.1 ms | ~1,715 |
+| RLS, one batch transaction per operation | 3.5 ms | 35.9 ms | ~500 |
+| RLS, one interactive transaction per request | 1.63 ms | 19.6 ms | ~1,130 |
+
+All 15 correctness checks passed, including 3,000 concurrent operations across 50 tenants on a shared pool with no cross-tenant row and no setting leaking onto a pooled connection. Policies keep using the `(tenant_id, …)` indexes.
+
+**Decision:**
+1. RLS stays on for **all** reads and writes. The Phase 0 fallback (RLS for writes only) is not needed.
+2. **Default:** the tenant-scoped client wraps each operation in a batch transaction (`BEGIN; set_config; query; COMMIT`). It is automatic and never holds a connection across application code.
+3. **`withTenantTx(fn)`:** an explicit interactive transaction for multi-statement units of work (atomic writes such as quotation → order, and query-heavy reads). It sets `app.tenant_id` once and publishes the transaction client in the CLS context. Nested calls join the outer transaction. External I/O (HTTP, email, queues) must not happen inside it.
+4. Services never hold a Prisma client. They call `db()`, which returns the ambient transaction client if one is open and the scoped client otherwise. Interactive transaction clients can't be extended in Prisma 7, so this is the only way to avoid "outer client inside a transaction" bugs.
+5. Policies use `nullif(current_setting('app.tenant_id', true), '')::uuid`. Once a pooled connection has seen the setting, its unset value is `''`, not NULL, and `''::uuid` raises an error instead of matching no rows.
+6. Prisma queries are lazy: they run on `await`, not on call. Context helpers must `await` inside the context. A query started inside the context but awaited outside it fails with `MissingTenantContextError` (fail closed).
+
+**Consequences:**
+- Overhead is about 2.3 ms per five-operation request locally. On the VPS the Docker network adds about 0.1 ms per extra round trip (15 per request). That is acceptable at the planned scale (hundreds of tenants, low request rates), and the system has 3× headroom over baseline on a laptop.
+- Re-benchmark with k6 on the VPS in Phase 8. PgBouncer in transaction mode stays compatible, because the setting is transaction-local.
+- Not measured: the TCP path, and the non-owner `tahi_app` role. The spike ran as the table owner with `FORCE ROW LEVEL SECURITY`, which applies the same policies. The Phase 2 integration suite covers `tahi_app` in CI.

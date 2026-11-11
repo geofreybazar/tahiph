@@ -41,3 +41,6 @@ test-results/
 
 # Next.js
 next-env.d.ts
+
+# Spike-generated Prisma clients
+spikes/**/generated/

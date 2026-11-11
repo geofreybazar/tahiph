@@ -5,7 +5,7 @@
 
 | # | Risk | L | I | Mitigation | Phase |
 |---|---|:-:|:-:|---|---|
-| R1 | **Prisma + RLS overhead and complexity.** Each scoped operation is wrapped in a transaction to `SET LOCAL app.tenant_id`; interactive transactions need context propagation; risk of developers bypassing via the unscoped client. | M | H | Phase 2 spike with benchmarks; `TenantTransaction` helper; lint rule restricting `UNSCOPED_PRISMA`; CI RLS-coverage check; fallback design documented in `MULTI_TENANCY.md` §5 | 2 |
+| R1 | **Prisma + RLS overhead and complexity.** Each scoped operation is wrapped in a transaction to `SET LOCAL app.tenant_id`; interactive transactions need context propagation; risk of developers bypassing via the unscoped client. | L | H | **Spike done (ADR-018):** ~2.3 ms overhead per five-query request locally, no leakage in 3,000 concurrent ops. `withTenantTx` + `db()` accessor; lint rule restricting `UNSCOPED_PRISMA`; CI RLS-coverage check; re-benchmark on the VPS in Phase 8 | 2, 8 |
 | R2 | **PayMongo Platforms availability, pricing or child KYC** may not suit small, informal ateliers. | M | H | Manual payments from Phase 4; OWN_KEYS fallback; resolve P1–P9 with PayMongo before Phase 6 | 0→6 |
 | R3 | **Philippine compliance:** Data Privacy Act (measurements and photos are personal data); BIR invoicing rules (RR 7-2024) for receipts. | M | H | Label receipts "Acknowledgment Receipt"; DPA in ToS; privacy notice and consent; erasure workflow; **legal counsel before launch** | 4, 8 |
 | R4 | **Single VPS = single point of failure** (hardware, provider outage, disk). | M | H | Off-site encrypted backups + PITR; automated restore tests; documented RTO 4 h; stateless apps; infra as scripts | 1, 8 |

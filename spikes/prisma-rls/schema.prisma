@@ -1,0 +1,43 @@
+// Spike-only schema (Phase 2, risk R1). Not part of the product schema.
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id   String @id @db.Uuid
+  name String
+
+  @@map("tenant")
+}
+
+// RLS enabled + forced.
+model Client {
+  id       String @id @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  name     String
+  email    String
+
+  @@unique([tenantId, id])
+  @@index([tenantId, name])
+  @@map("client")
+}
+
+// Identical table without RLS: the baseline.
+model ClientNoRls {
+  id       String @id @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  name     String
+  email    String
+
+  @@unique([tenantId, id])
+  @@index([tenantId, name])
+  @@map("client_norls")
+}
