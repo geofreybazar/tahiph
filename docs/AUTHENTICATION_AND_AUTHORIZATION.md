@@ -4,9 +4,10 @@
 > **Implemented:**
 > - sessions (`SessionService`), the global access guard, decorators and the permission catalogue (`packages/types/src/permissions.ts`); see ADR-019;
 > - staff register, verify, login, logout, me, switch-tenant, forgot/reset password, onboarding and invitations, plus CSRF and throttling; see ADR-020;
-> - platform admin login with mandatory TOTP, recovery codes and the Super Admin bootstrap CLI; see ADR-021.
+> - platform admin login with mandatory TOTP, recovery codes and the Super Admin bootstrap CLI; see ADR-021;
+> - storefront customer sign-in by email code or magic link, bound to the atelier's host; see ADR-022.
 >
-> **Planned:** customer OTP, step-up re-authentication, optional staff TOTP, the HIBP check and session management.
+> **Planned:** linking customers to CRM clients (Phase 3), step-up re-authentication, optional staff TOTP, the HIBP check and session management.
 > **Decision:** opaque server-side sessions (ADR-002). JWTs are not used for browser auth.
 
 ## 1. Realms

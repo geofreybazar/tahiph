@@ -86,3 +86,22 @@ export function invitation(to: string, atelier: string, role: string, url: strin
     html: layout(`Join ${atelier}`, p, { label: 'Accept invitation', url }),
   };
 }
+
+export function customerSignIn(
+  to: string,
+  atelier: string,
+  code: string,
+  url: string,
+): EmailMessage {
+  const p = [
+    `Your sign-in code for ${atelier} is ${code}.`,
+    'It expires in 10 minutes. You can also sign in with the button below.',
+    'If you did not ask for this, you can ignore this email.',
+  ];
+  return {
+    to,
+    subject: `${code} is your sign-in code for ${atelier}`,
+    text: text(p, url),
+    html: layout(`Sign in to ${atelier}`, p, { label: 'Sign in', url }),
+  };
+}

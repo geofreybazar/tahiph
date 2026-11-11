@@ -7,7 +7,7 @@
 |---|---|---|
 | 0 | Product discovery & architecture | **Complete** |
 | 1 | Project foundation | **Complete** (local Docker check outstanding, see below) |
-| 2 | Authentication & multi-tenancy | **In progress** |
+| 2 | Authentication & multi-tenancy | **In review** (final branch `feat/customer-auth`) |
 | 3 | Tenant business management | Not started |
 | 4 | Sales & operations | Not started |
 | 5 | Personalized storefront | Not started |
@@ -57,13 +57,19 @@ Work items:
 - [x] Tenancy core: schema slice, RLS, scoped client, access guard, sessions, permission catalogue (ADR-019). Merged.
 - [x] Staff auth on `feat/staff-auth`: register/verify/login/logout/reset, onboarding, invitations, switcher, CSRF, throttling, email queue (ADR-020). Merged.
 - [x] Platform auth on `feat/platform-auth`: password + mandatory TOTP, recovery codes, encrypted secrets, Super Admin CLI (ADR-021). Merged.
-- [ ] Customer auth (`feat/customer-auth`)
+- [x] Customer auth on `feat/customer-auth`: email code + magic link, per-atelier accounts (ADR-022). In review.
 
 **Exit criteria:**
-- Cross-tenant suite passes for every route.
-- RLS check passes for every tenant table.
-- Auth flows covered by integration tests.
-- Throttling verified.
+- [x] **Cross-tenant suite passes for every route, with one caveat:**
+  - Every route is checked at boot for an explicit realm and access rule (deny by default).
+  - The only tenant-realm route that takes resource ids from the client, `POST /tenant/invitations` (`roleId`), has a cross-tenant 404 test.
+  - The access suite covers foreign ids, foreign hosts and foreign sessions.
+  - **Not built:** automatic per-route cross-tenant tests enumerated from the router. Phase 3 adds them alongside its many resource routes.
+- [x] RLS check passes for every tenant table. The integration test compares database policies with `TENANT_MODELS` and runs as a non-superuser role.
+- [x] Auth flows are covered by integration tests: staff, platform and customer.
+- [x] Throttling is verified with the in-memory store in flow tests and the Redis store in CI.
+
+**Open from Phase 2:** the OpenAPI generator choice (ADR-015) has not been made. Phase 2's endpoints are fully described by the Zod contracts in `@tahi/validation`. Propose deciding it at the start of Phase 3.
 
 ## Phase 3 — Tenant business management
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.

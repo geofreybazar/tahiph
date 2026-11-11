@@ -96,7 +96,7 @@ export class AccessGuard implements CanActivate {
         ? await this.authenticateStaff(session)
         : realm === 'platform'
           ? await this.authenticatePlatform(session, access)
-          : this.authenticateCustomer(session);
+          : await this.authenticateCustomer(session);
 
     await this.sessions.touch(session);
     this.authorize(access, permissions);
@@ -162,13 +162,18 @@ export class AccessGuard implements CanActivate {
     return perms;
   }
 
-  private authenticateCustomer(session: ActiveSession): ReadonlySet<Permission> {
+  private async authenticateCustomer(session: ActiveSession): Promise<ReadonlySet<Permission>> {
     // A customer session is bound to one tenant; it is never valid on another tenant's host.
-    // CustomerAccount status checks arrive with the customer-auth work.
     if (!session.tenantId || session.tenantId !== this.cls.get('tenantId')) {
       throw new UnauthenticatedError();
     }
-    this.cls.set('customerSessionTenantId', session.tenantId);
+    // Read through RLS under the host's tenant: an account of another tenant is invisible.
+    const account = await this.tenantDb.db().customerAccount.findUnique({
+      where: { id: session.subjectId },
+      select: { id: true, status: true },
+    });
+    if (account?.status !== 'ACTIVE') throw new UnauthenticatedError();
+    this.cls.set('customerAccountId', account.id);
     return new Set();
   }
 

@@ -424,15 +424,43 @@ describe('Access guard (integration: real PostgreSQL)', () => {
       await get(APP, 'public/probe').expect(404);
     });
 
+    async function customer(t: TenantFixture, status: 'ACTIVE' | 'DISABLED' = 'ACTIVE') {
+      return asTenant(prisma, t.tenantId, (tx) =>
+        tx.customerAccount.create({
+          data: {
+            tenantId: t.tenantId,
+            email: `c-${randomUUID()}@example.test`,
+            status,
+            emailVerifiedAt: new Date(),
+          },
+        }),
+      );
+    }
+
     it('binds customer sessions to one tenant’s hosts', async () => {
-      const s = await sessions.create({
-        realm: 'CUSTOMER',
-        subjectId: randomUUID(),
-        tenantId: A.tenantId,
-      });
+      const c = await customer(A);
+      const s = await sessions.create({ realm: 'CUSTOMER', subjectId: c.id, tenantId: A.tenantId });
       await get(A.hostname, 'customer/probe', cookie('CUSTOMER', s.token)).expect(200);
       await get(B.hostname, 'customer/probe', cookie('CUSTOMER', s.token)).expect(401);
       await get(A.hostname, 'customer/probe').expect(401);
+    });
+
+    it('rejects sessions of disabled accounts and accounts of another tenant', async () => {
+      const disabled = await customer(A, 'DISABLED');
+      const s1 = await sessions.create({
+        realm: 'CUSTOMER',
+        subjectId: disabled.id,
+        tenantId: A.tenantId,
+      });
+      await get(A.hostname, 'customer/probe', cookie('CUSTOMER', s1.token)).expect(401);
+      // A session claiming tenant A for B's account: the account is invisible under A (RLS).
+      const foreign = await customer(B);
+      const s2 = await sessions.create({
+        realm: 'CUSTOMER',
+        subjectId: foreign.id,
+        tenantId: A.tenantId,
+      });
+      await get(A.hostname, 'customer/probe', cookie('CUSTOMER', s2.token)).expect(401);
     });
   });
 

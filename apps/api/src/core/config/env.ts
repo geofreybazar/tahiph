@@ -26,6 +26,14 @@ const envSchema = z.object({
   API_HOST: hostname,
   /** Storefront subdomains are {slug}.{STOREFRONT_ROOT_DOMAIN}, e.g. tahi.ph. */
   STOREFRONT_ROOT_DOMAIN: hostname,
+  /**
+   * Storefront origin for customer email links; {host} is the tenant's hostname.
+   * Production: https://{host}. Local Next.js dev server: http://{host}:3002.
+   */
+  STOREFRONT_URL_TEMPLATE: z
+    .string()
+    .regex(/^https?:\/\/\{host\}(:\d+)?$/, 'must look like https://{host} or http://{host}:3002')
+    .default('https://{host}'),
   /** Dashboard origin used in email links, e.g. https://app.tahi.ph. */
   APP_PUBLIC_URL: z.url({ protocol: /^https?$/ }).transform((u) => u.replace(/\/+$/, '')),
   /**

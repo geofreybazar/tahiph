@@ -18,7 +18,7 @@ export interface RequestContext extends ClsStore {
   /** Platform sessions: whether the TOTP step is complete. */
   mfaVerified?: boolean;
   membershipId?: string;
-  customerSessionTenantId?: string;
+  customerAccountId?: string;
   permissions?: ReadonlySet<Permission>;
   /** Ambient tenant transaction client (withTenantTx). */
   tenantTx?: unknown;

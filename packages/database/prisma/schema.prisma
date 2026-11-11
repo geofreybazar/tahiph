@@ -74,6 +74,11 @@ enum AuthTokenPurpose {
   CUSTOMER_OTP
 }
 
+enum CustomerAccountStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum ActorType {
   PLATFORM_USER
   USER
@@ -194,10 +199,11 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  domains     TenantDomain[]
-  memberships TenantMembership[]
-  roles       Role[]
-  auditLogs   TenantAuditLog[]
+  domains          TenantDomain[]
+  memberships      TenantMembership[]
+  roles            Role[]
+  auditLogs        TenantAuditLog[]
+  customerAccounts CustomerAccount[]
 
   @@map("tenant")
 }
@@ -273,6 +279,27 @@ model TenantMembership {
   @@index([tenantId, roleId])
   @@index([userId])
   @@map("tenant_membership")
+}
+
+/// A storefront customer of one atelier (passwordless email OTP). Per-tenant identity: the
+/// same person at two ateliers has two unrelated accounts (Data Privacy Act).
+/// Linked to the CRM Client in Phase 3 (additive clientId + composite FK).
+model CustomerAccount {
+  id              String                @id @default(uuid(7)) @db.Uuid
+  tenantId        String                @map("tenant_id") @db.Uuid
+  email           String                @db.Citext
+  name            String?
+  status          CustomerAccountStatus @default(ACTIVE)
+  emailVerifiedAt DateTime              @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt     DateTime?             @map("last_login_at") @db.Timestamptz(3)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, email])
+  @@map("customer_account")
 }
 
 /// Append-only (UPDATE/DELETE blocked by trigger).

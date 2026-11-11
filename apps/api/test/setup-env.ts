@@ -8,5 +8,6 @@ process.env.API_HOST ??= 'api.tahi.test';
 process.env.LOG_LEVEL ??= 'silent';
 process.env.STOREFRONT_ROOT_DOMAIN ??= 'tahi.test';
 process.env.APP_PUBLIC_URL ??= 'http://app.tahi.test';
+process.env.STOREFRONT_URL_TEMPLATE ??= 'http://{host}';
 // Test-only key, generated per run.
 process.env.ENCRYPTION_KEYS ??= `test:${randomBytes(32).toString('base64')}`;

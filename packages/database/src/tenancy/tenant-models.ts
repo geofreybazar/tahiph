@@ -8,6 +8,7 @@ export const TENANT_MODELS = {
   RolePermission: 'role_permission',
   TenantMembership: 'tenant_membership',
   TenantAuditLog: 'tenant_audit_log',
+  CustomerAccount: 'customer_account',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

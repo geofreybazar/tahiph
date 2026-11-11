@@ -236,3 +236,18 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
    - The insert runs in a serializable transaction that refuses if any Super Admin exists.
    - There is no self-registration. Further admins are created in the admin dashboard (Phase 7).
 **Deferred to Phase 7:** step-up re-authentication for sensitive actions, resetting MFA for an admin who lost their device (Super Admin action), admin management, and WebAuthn.
+
+## ADR-022 — Storefront customer sign-in
+**Status:** Proposed (2026-11-11, branch `feat/customer-auth`)
+**Decision:**
+1. **`CustomerAccount` is a tenant-owned table** (RLS, `UNIQUE(tenant_id, email)`, migration 0005). The same email at two ateliers is two unrelated accounts: separate data subjects and controllers under the Data Privacy Act.
+   - The link to the CRM `Client` (doc §3.5, "links or creates a Client") is **deferred to Phase 3**, when `Client` is designed. It will be an additive `client_id` with a composite FK.
+2. **Passwordless:** `POST /customer/auth/start` emails a 6-digit code and a magic link, both from one `AuthToken(CUSTOMER_OTP)` row, valid for 10 minutes.
+   - The link token is stored as SHA-256. The code is stored as a salted SHA-256 in the token's metadata.
+   - Five wrong codes burn the token. A new request replaces older codes.
+   - Sends are limited per IP and per email per atelier.
+   - `start` always answers 202 and sends nothing to disabled accounts.
+3. **Account creation:** the first verification creates the account. The email counts as verified because the code was received there.
+4. **Tenant binding:** codes and links work only on the host of the atelier that issued them. Customer sessions are accepted only on that atelier's hosts, and only for an `ACTIVE` account, which the access guard reads through RLS.
+5. **Links** use `STOREFRONT_URL_TEMPLATE` (default `https://{host}`; local dev `http://{host}:3002`).
+**Consequences:** A database leak would expose code hashes that can be brute-forced (10⁶ possibilities). That is acceptable for 10-minute, single-use codes.
