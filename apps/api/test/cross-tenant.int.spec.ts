@@ -20,6 +20,7 @@ import type { RouteInfo } from '../src/core/http/route-inventory.js';
 import { AuthModule } from '../src/modules/auth/auth.module.js';
 import { PlatformModule } from '../src/modules/platform/platform.module.js';
 import { ClientsModule } from '../src/modules/clients/clients.module.js';
+import { CatalogModule } from '../src/modules/catalog/catalog.module.js';
 import { AppointmentsModule } from '../src/modules/appointments/appointments.module.js';
 import { MeasurementsModule } from '../src/modules/measurements/measurements.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
@@ -98,6 +99,28 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'AppointmentsController.cancel': () => ({}),
   'AppointmentsController.complete': () => ({}),
   'AppointmentsController.noShow': () => ({}),
+  'CatalogCategoriesController.update': () => ({ name: `Gowns ${suffix()}` }),
+  'CatalogCategoriesController.archive': () => ({}),
+  'CatalogCategoriesController.restore': () => ({}),
+  'CatalogItemsController.list': () => ({}),
+  'CatalogItemsController.create': () => ({
+    kind: 'PRODUCT',
+    name: 'Barong',
+    pricingMode: 'QUOTE',
+  }),
+  'CatalogItemsController.get': () => ({}),
+  'CatalogItemsController.update': () => ({ name: `Barong ${suffix()}` }),
+  'CatalogItemsController.archive': () => ({}),
+  'CatalogItemsController.restore': () => ({}),
+  'CatalogItemsController.setOptionGroups': () => ({}),
+  'OptionGroupsController.get': () => ({}),
+  'OptionGroupsController.update': () => ({ name: `Fabric ${suffix()}` }),
+  'OptionGroupsController.archive': () => ({}),
+  'OptionGroupsController.restore': () => ({}),
+  'OptionGroupsController.addOption': () => ({ name: 'Jusi', priceDelta: '1500.00' }),
+  'OptionGroupsController.updateOption': () => ({ name: `Piña ${suffix()}` }),
+  'OptionGroupsController.archiveOption': () => ({}),
+  'OptionGroupsController.restoreOption': () => ({}),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
     direction: 'INBOUND',
@@ -115,23 +138,26 @@ interface Side {
   fresh: Record<string, () => Promise<string>>;
 }
 
-function uuidBodyFields(schema: z.ZodType | undefined): string[] {
+type JsonProp = { format?: string; items?: { format?: string } };
+
+/** Request fields holding uuids: single ids, or arrays of ids (`array: true`). */
+function uuidFields(schema: z.ZodType | undefined): { name: string; array: boolean }[] {
   if (!schema) return [];
   const json = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as {
-    properties?: Record<string, { format?: string }>;
-    anyOf?: { properties?: Record<string, { format?: string }> }[];
+    properties?: Record<string, JsonProp>;
+    anyOf?: { properties?: Record<string, JsonProp> }[];
   };
-  const objects = [json, ...(json.anyOf ?? [])];
-  return [
-    ...new Set(
-      objects.flatMap((o) =>
-        Object.entries(o.properties ?? {})
-          .filter(([, p]) => p.format === 'uuid')
-          .map(([k]) => k),
-      ),
-    ),
-  ];
+  const found = new Map<string, boolean>();
+  for (const o of [json, ...(json.anyOf ?? [])]) {
+    for (const [name, p] of Object.entries(o.properties ?? {})) {
+      if (p.format === 'uuid') found.set(name, false);
+      else if (p.items?.format === 'uuid') found.set(name, true);
+    }
+  }
+  return [...found].map(([name, array]) => ({ name, array }));
 }
+
+const uuidBodyFields = (schema: z.ZodType | undefined) => uuidFields(schema).map((f) => f.name);
 
 describe('Cross-tenant isolation for every route (integration)', () => {
   let app: INestApplication;
@@ -255,10 +281,34 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         });
         return t.id;
       });
+    const catalog = await asTenant(prisma, tenant.tenantId, async (tx) => {
+      const category = await tx.catalogCategory.create({
+        data: { tenantId: tenant.tenantId, name: 'Gowns' },
+      });
+      const item = await tx.catalogItem.create({
+        data: {
+          tenantId: tenant.tenantId,
+          kind: 'SERVICE',
+          name: 'Alteration',
+          pricingMode: 'QUOTE',
+        },
+      });
+      const group = await tx.catalogOptionGroup.create({
+        data: { tenantId: tenant.tenantId, name: 'Fabric', selection: 'SINGLE' },
+      });
+      const option = await tx.catalogOption.create({
+        data: { tenantId: tenant.tenantId, groupId: group.id, name: 'Piña' },
+      });
+      return { category, item, group, option };
+    });
     return {
       tenant,
       fresh: { clientNote: note, measurementRecord: record, appointment, timeOff },
       resources: {
+        catalogCategory: catalog.category.id,
+        catalogItem: catalog.item.id,
+        optionGroup: catalog.group.id,
+        catalogOption: catalog.option.id,
         appointmentType: appointmentType.id,
         garmentCategory: category.id,
         measurementTemplate: template.id,
@@ -310,6 +360,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         ClientsModule,
         MeasurementsModule,
         AppointmentsModule,
+        CatalogModule,
         PlatformModule,
       ],
     })
@@ -381,6 +432,9 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'AppointmentsController.list',
         'AppointmentsController.reschedule',
         'StaffScheduleController.deleteTimeOff',
+        'CatalogItemsController.setOptionGroups',
+        'CatalogItemsController.create',
+        'OptionGroupsController.updateOption',
         'RolesController.update',
         'AuthController.switchTenant',
         'StaffController.update',
@@ -416,7 +470,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             const id = who.fresh[k] ? await who.fresh[k]() : who.resources[k];
             if (!id) throw new Error(`no fixture for resource kind ${k}`);
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
-            else body[f] = id;
+            else body[f] = uuidFields(route.body).some((x) => x.name === f && x.array) ? [id] : id;
           }
           // GET routes take the sample and the ids as query parameters.
           const query = new URLSearchParams(body as Record<string, string>).toString();

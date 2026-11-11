@@ -90,6 +90,8 @@
 - `OptionGroup` / `Option`: fabric, material, customization, with price deltas
 - `MediaAsset`: images with focal point and alt text
 
+**Implemented (Phase 3, migration `0011_catalog`, ADR-030):** `CatalogCategory`, `CatalogItem` (one table for products and services), `CatalogOptionGroup`, `CatalogOption` (price delta, may be negative) and `CatalogItemOptionGroup` (shared groups, ordered). `MediaAsset` waits for uploads.
+
 **Sales**
 - `Quotation`: number, clientId, status (`DRAFT`/`SENT`/`ACCEPTED`/`REJECTED`/`EXPIRED`/`CONVERTED`), validUntil, subtotal, discount, tax, total, revision, `supersedesId?`
 - `QuotationItem`: snapshot of name, description, unitPrice, qty, selected options (jsonb), measurementRecordId?

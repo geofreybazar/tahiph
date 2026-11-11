@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PlatformModule } from './modules/platform/platform.module.js';
 import { AppointmentsModule } from './modules/appointments/appointments.module.js';
+import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
 import { MeasurementsModule } from './modules/measurements/measurements.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
@@ -26,6 +27,7 @@ import { TenantsModule } from './modules/tenants/tenants.module.js';
     ClientsModule,
     MeasurementsModule,
     AppointmentsModule,
+    CatalogModule,
     PlatformModule,
   ],
 })

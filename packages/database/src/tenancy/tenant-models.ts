@@ -25,6 +25,11 @@ export const TENANT_MODELS = {
   StaffAvailability: 'staff_availability',
   StaffTimeOff: 'staff_time_off',
   Appointment: 'appointment',
+  CatalogCategory: 'catalog_category',
+  CatalogItem: 'catalog_item',
+  CatalogOptionGroup: 'catalog_option_group',
+  CatalogOption: 'catalog_option',
+  CatalogItemOptionGroup: 'catalog_item_option_group',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

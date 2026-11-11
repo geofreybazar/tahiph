@@ -42,6 +42,10 @@ export type ResourceKind =
   | 'appointmentType'
   | 'appointment'
   | 'timeOff'
+  | 'catalogCategory'
+  | 'catalogItem'
+  | 'optionGroup'
+  | 'catalogOption'
   | (string & {});
 
 /**

@@ -343,3 +343,15 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - `tenant_settings.appointment_reminders` (default on) turns reminders off per atelier.
 - The worker loads `RemindersWorkerModule`, which provides only the services it needs (no controllers).
 **Consequences:** One reminder per appointment, English only, no cancel link until the storefront exists (Phase 5).
+
+## ADR-030 — Catalogue: one item table and shared option groups
+**Status:** Accepted (2026-11-11, product owner approved step 7 and all three recommendations)
+**Context:** Ateliers sell ready-to-wear and made-to-measure products and services, priced fixed or by quotation, with options such as fabric. Phase 4 quotations will snapshot names and prices.
+**Decision:**
+- **One `catalog_item` table** with `kind` (`PRODUCT`/`SERVICE`) instead of separate Product and Service tables. `fulfilment` applies to products only; `pricing_mode` is `FIXED` (base price required) or `QUOTE` (optional "from" price). Both rules are enforced by the API on the merged record and by CHECK constraints.
+- **Option groups are shared** between items through `catalog_item_option_group` (ordered, replaced as a whole). One price change on an option shows on every item that uses it.
+- **Option price changes may be negative** (e.g. client provides own fabric). Totals will be floored at zero by quotations in Phase 4.
+- **Money** is `numeric(12,2)` plus currency (the tenant's, PHP), sent as `{ amount, currency }` with string amounts.
+- **Nothing is deleted**; categories, items, groups and options are archived. Archived groups stay on items that have them but cannot be attached anew; archived categories cannot be assigned anew.
+- Tables are prefixed `catalog_` (`OPTION` is an SQL keyword). The cross-tenant suite now also handles arrays of ids in request bodies.
+**Consequences:** Item photos wait for uploads (step 8); price calculation and snapshots for Phase 4; storefront display for Phase 5.

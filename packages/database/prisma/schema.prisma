@@ -125,6 +125,26 @@ enum AppointmentSource {
   STOREFRONT
 }
 
+enum CatalogItemKind {
+  PRODUCT
+  SERVICE
+}
+
+enum Fulfilment {
+  READY_TO_WEAR
+  MADE_TO_MEASURE
+}
+
+enum PricingMode {
+  FIXED
+  QUOTE
+}
+
+enum OptionSelection {
+  SINGLE
+  MULTIPLE
+}
+
 /// Default unit for new measurement records (Q2). Each record also stores its own unit.
 enum MeasurementUnit {
   CM
@@ -263,6 +283,9 @@ model Tenant {
   clients           Client[]
   garmentCategories GarmentCategory[]
   appointmentTypes  AppointmentType[]
+  catalogCategories CatalogCategory[]
+  catalogItems      CatalogItem[]
+  optionGroups      CatalogOptionGroup[]
 
   @@map("tenant")
 }
@@ -765,4 +788,112 @@ model Appointment {
   @@index([tenantId, staffMembershipId, startsAt])
   @@index([tenantId, typeId])
   @@map("appointment")
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue (tenant-owned, RLS). Archived, never deleted, so ids stay stable for the
+// quotations and orders that snapshot them (ADR-030).
+// ---------------------------------------------------------------------------
+
+model CatalogCategory {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  name       String
+  sortOrder  Int       @default(0) @map("sort_order")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  items  CatalogItem[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, sortOrder])
+  @@map("catalog_category")
+}
+
+/// A product (ready-to-wear or made-to-measure) or a service, priced fixed or by quotation.
+model CatalogItem {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  categoryId    String?         @map("category_id") @db.Uuid
+  kind          CatalogItemKind
+  name          String
+  description   String?
+  /// Products only.
+  fulfilment    Fulfilment?
+  pricingMode   PricingMode     @map("pricing_mode")
+  /// Required when pricingMode is FIXED (CHECK).
+  basePrice     Decimal?        @map("base_price") @db.Decimal(12, 2)
+  currency      String          @default("PHP") @db.Char(3)
+  /// Shown on the storefront (Phase 5).
+  publicVisible Boolean         @default(false) @map("public_visible")
+  archivedAt    DateTime?       @map("archived_at") @db.Timestamptz(3)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  category     CatalogCategory?         @relation(fields: [tenantId, categoryId], references: [tenantId, id], onDelete: Restrict)
+  optionGroups CatalogItemOptionGroup[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, categoryId])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "catalog_item_name_trgm_idx")
+  @@map("catalog_item")
+}
+
+/// A reusable set of choices (e.g. Fabric), shared by many items.
+model CatalogOptionGroup {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  tenantId   String          @map("tenant_id") @db.Uuid
+  name       String
+  selection  OptionSelection
+  required   Boolean         @default(false)
+  archivedAt DateTime?       @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant  Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  options CatalogOption[]
+  items   CatalogItemOptionGroup[]
+
+  @@unique([tenantId, id])
+  @@map("catalog_option_group")
+}
+
+model CatalogOption {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  groupId    String    @map("group_id") @db.Uuid
+  name       String
+  /// Added to the item price when chosen; may be negative (ADR-030).
+  priceDelta Decimal   @default(0) @map("price_delta") @db.Decimal(12, 2)
+  currency   String    @default("PHP") @db.Char(3)
+  sortOrder  Int       @default(0) @map("sort_order")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  group CatalogOptionGroup @relation(fields: [tenantId, groupId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, groupId, sortOrder])
+  @@map("catalog_option")
+}
+
+/// Which option groups an item offers, in order. Replaced as a whole.
+model CatalogItemOptionGroup {
+  tenantId  String @map("tenant_id") @db.Uuid
+  itemId    String @map("item_id") @db.Uuid
+  groupId   String @map("group_id") @db.Uuid
+  sortOrder Int    @map("sort_order")
+
+  item  CatalogItem        @relation(fields: [tenantId, itemId], references: [tenantId, id], onDelete: Restrict)
+  group CatalogOptionGroup @relation(fields: [tenantId, groupId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([itemId, groupId])
+  @@index([tenantId, itemId])
+  @@index([tenantId, groupId])
+  @@map("catalog_item_option_group")
 }
