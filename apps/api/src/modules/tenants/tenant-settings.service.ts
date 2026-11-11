@@ -42,6 +42,15 @@ function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && 'code' in err && err.code === 'P2002';
 }
 
+type Timestamped = { updatedAt: Date };
+const withIso = <T extends Timestamped>(r: T) => ({ ...r, updatedAt: r.updatedAt.toISOString() });
+const settingsOut = <T extends Timestamped & { taxRate: { toFixed(n: number): string } }>(
+  s: T,
+) => ({
+  ...withIso(s),
+  taxRate: s.taxRate.toFixed(2),
+});
+
 const toDate = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 const fromDate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -63,7 +72,9 @@ export class TenantSettingsService {
   }
 
   async profile() {
-    return this.tenantDb.db().businessProfile.findFirstOrThrow({ select: PROFILE_SELECT });
+    return withIso(
+      await this.tenantDb.db().businessProfile.findFirstOrThrow({ select: PROFILE_SELECT }),
+    );
   }
 
   async replaceProfile(input: BusinessProfileRequest, ip: string) {
@@ -74,13 +85,13 @@ export class TenantSettingsService {
         select: PROFILE_SELECT,
       });
       await this.audit.tenant({ ...this.actor(ip), action: 'business_profile.updated' });
-      return profile;
+      return withIso(profile);
     });
   }
 
   async settings() {
     const s = await this.tenantDb.db().tenantSettings.findFirstOrThrow({ select: SETTINGS_SELECT });
-    return { ...s, taxRate: s.taxRate.toFixed(2) };
+    return settingsOut(s);
   }
 
   async updateSettings(input: UpdateTenantSettingsRequest, ip: string) {
@@ -97,7 +108,7 @@ export class TenantSettingsService {
       });
       return updated;
     });
-    return { ...s, taxRate: s.taxRate.toFixed(2) };
+    return settingsOut(s);
   }
 
   async operatingHours() {
