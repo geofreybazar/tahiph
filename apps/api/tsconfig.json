@@ -1,0 +1,9 @@
+{
+  "extends": "@tahi/config/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src", "test", "vitest.config.ts", "eslint.config.js"]
+}

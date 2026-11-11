@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-fund
+      - run: npm run format:check
+      - run: npx turbo run lint typecheck test build
+      - name: Audit production dependencies (high/critical)
+        run: npm audit --omit=dev --audit-level=high
+
+  integration:
+    name: Integration tests (PostgreSQL + Redis)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: tahi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tahi" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:ci-only-password@localhost:5432/tahi
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-fund
+      - name: Apply migrations
+        run: npm run db:migrate:deploy
+      - name: Verify role bootstrap script
+        env:
+          PGPASSWORD: ci-only-password
+          TAHI_OWNER_PASSWORD: ci-owner
+          TAHI_APP_PASSWORD: ci-app
+        run: |
+          createdb -h localhost -U postgres tahi_roles_check
+          POSTGRES_USER=postgres POSTGRES_DB=tahi_roles_check PGHOST=localhost \
+            sh infrastructure/postgres/init/01-roles.sh
+          psql -h localhost -U postgres -d tahi_roles_check -Atc \
+            "select rolname, rolsuper, rolbypassrls from pg_roles where rolname like 'tahi_%' order by 1" \
+            | tee /tmp/roles.txt
+          grep -qx 'tahi_app|f|f' /tmp/roles.txt
+          grep -qx 'tahi_owner|f|f' /tmp/roles.txt
+      - run: npx turbo run test:int
+
+  docker:
+    name: Docker image build (${{ matrix.image }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: api, dockerfile: infrastructure/docker/api.Dockerfile, app: '' }
+          - { image: dashboard, dockerfile: infrastructure/docker/next.Dockerfile, app: dashboard }
+          - {
+              image: storefront,
+              dockerfile: infrastructure/docker/next.Dockerfile,
+              app: storefront,
+            }
+          - { image: admin, dockerfile: infrastructure/docker/next.Dockerfile, app: admin }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          build-args: APP=${{ matrix.app }}
+          tags: tahi-${{ matrix.image }}:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      - name: Smoke-test the image
+        run: |
+          if [ "${{ matrix.image }}" = "api" ]; then
+            # Worker entrypoint and healthcheck script must be present; prisma CLI available for migrate.
+            docker run --rm tahi-api:ci sh -c 'test -f dist/main.js && test -f dist/main.worker.js && test -f dist/worker-healthcheck.js && cd /app/packages/database && npx --no-install prisma --version'
+          else
+            docker run -d --name app -p 3000:3000 tahi-${{ matrix.image }}:ci
+            for i in $(seq 1 30); do curl -fsS localhost:3000/healthz && break; sleep 1; done
+            curl -fsS localhost:3000/healthz
+            docker inspect --format '{{.Config.User}}' tahi-${{ matrix.image }}:ci | grep -qx node
+          fi

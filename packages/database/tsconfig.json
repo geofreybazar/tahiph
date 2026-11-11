@@ -1,0 +1,7 @@
+{
+  "extends": "@tahi/config/tsconfig/library.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src", "prisma.config.ts"]
+}

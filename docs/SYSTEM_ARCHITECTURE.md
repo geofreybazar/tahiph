@@ -69,7 +69,7 @@ tahi/
 │   └── scripts/          backup.sh, restore.sh, deploy.sh, restore-test.sh
 ├── docs/
 ├── .github/workflows/
-├── docker-compose.yml          Local development (postgres, redis, mailpit, minio)
+├── docker-compose.yml          Local development (postgres, redis, mailpit)
 ├── docker-compose.prod.yml     Production
 ├── turbo.json
 ├── package.json

@@ -1,6 +1,6 @@
 # Docker Architecture — TAHI.ph
 
-> **Status:** Proposed (Phase 0). No Dockerfiles or Compose files exist yet (Phase 1).
+> **Status:** Phase 1 implemented: `infrastructure/docker/*.Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml` and `infrastructure/traefik/`. **Not yet run locally** (no Docker in WSL). Images are built and smoke-tested in CI. The backup container is Phase 8.
 > **Local note:** the Docker CLI is not currently available in the development WSL environment. Enable Docker Desktop WSL integration or install Docker Engine before Phase 1.
 
 ## 1. Services
@@ -104,7 +104,7 @@ Docker volumes are **not** a backup.
 
 ## 7. Local development (`docker-compose.yml`)
 
-- Runs only the infrastructure: `postgres` (published on `127.0.0.1:5432` for local tools), `redis`, `mailpit` (email capture), `minio` (S3-compatible).
+- Runs only the infrastructure: `postgres` (published on `127.0.0.1:5432` for local tools), `redis` and `mailpit` (email capture). A local S3-compatible store is added in Phase 3 with uploads; MinIO no longer publishes community images (ADR-016).
 - Apps run on the host with `turbo dev` for fast reload. A `full` profile runs app containers for parity testing.
 - Seed script: two demo tenants (A and B) for cross-tenant manual testing.
 

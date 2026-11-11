@@ -1,0 +1,16 @@
+// TAHI.ph Prisma schema.
+//
+// Phase 1 intentionally contains no models. Entities are added from Phase 2 onward,
+// following docs/DATABASE_DESIGN.md and docs/DATABASE_ERD.md after review.
+// Conventions: PascalCase models mapped to snake_case tables, UUIDv7 ids,
+// tenant_id + UNIQUE(tenant_id, id) on tenant tables, RLS via raw SQL migrations.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}

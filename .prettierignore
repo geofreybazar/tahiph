@@ -1,0 +1,11 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+package-lock.json
+**/src/generated/**
+**/prisma/migrations/**
+# Hand-formatted documentation (wide tables)
+*.md
+.github/ISSUE_TEMPLATE

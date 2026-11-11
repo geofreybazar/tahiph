@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for fashion designers and bespoke ateliers (Philippines). Monorepo: Turborepo + npm workspaces.
 
-**Current phase:** 0 (architecture) is in review. **No application code exists yet. Do not scaffold, install dependencies or implement features until the product owner approves the phase.**
+**Current phase:** 1 (foundation) is in review on `chore/phase-1-foundation`. Phase 0 architecture is approved. **Do not start Phase 2 (auth and multi-tenancy) until the product owner approves Phase 1.**
 
 ## Source of truth
 Read `docs/` before working on any area. Key docs:
@@ -14,7 +14,7 @@ Read `docs/` before working on any area. Key docs:
 - `docs/API_STANDARDS.md`: module layout, response envelope, errors
 - `docs/ARCHITECTURAL_DECISIONS.md`: ADRs. Add a new ADR for any significant change.
 
-## Layout (planned)
+## Layout
 - `apps/dashboard` (app.tahi.ph), `apps/storefront` (*.tahi.ph + custom domains), `apps/admin` (admin.tahi.ph): Next.js App Router
 - `apps/api`: NestJS modular monolith with two entrypoints, `main.ts` (HTTP) and `main.worker.ts` (BullMQ worker, separate container)
 - `packages/database` (Prisma), `validation` (Zod contracts), `types`, `ui`, `config`, `utils`
@@ -41,7 +41,17 @@ Read `docs/` before working on any area. Key docs:
 - Conventional Commits.
 
 ## Commands
-None yet (Phase 1 will add `npm run dev|lint|typecheck|test|build` via Turborepo).
+- `npm run lint | typecheck | test | build`: everything via Turborepo. Run all four before claiming completion.
+- `npm run test:int`: API integration tests (needs `DATABASE_URL` + `REDIS_URL`).
+- `npm run db:migrate:dev | db:migrate:deploy | db:generate`: Prisma (`packages/database`).
+
+## Conventions
+- **ESM everywhere** (NestJS 12 is ESM-only). Use relative imports with a `.js` suffix in TS sources.
+- **Versions are pinned exactly.** See ADR-014 before upgrading (TypeScript is held at 6.0.x and ESLint at 9.x for plugin compatibility).
+- **Zod is the only validation library.** Use `ZodValidationPipe` with schemas from `@tahi/validation`. Env is validated in `apps/api/src/core/config/env.ts`.
+- **Errors:** throw `DomainError` subclasses (`apps/api/src/core/http/domain-error.ts`). The global filter builds the envelope.
+- **Package tsconfigs:** `tsconfig.json` is for typecheck and lint (includes specs); `tsconfig.build.json` emits `dist`.
+- **npm install scripts** must be reviewed and approved via `npm install-scripts approve <pkg>` (root `allowScripts`).
 
 ## Environment notes
-- Node 24 / npm 11 available locally. The Docker CLI is **not** installed in the WSL environment yet (required for Phase 1).
+- Node 24 / npm 11 available locally. The Docker CLI is **not** installed in WSL yet, so Docker artifacts are verified in CI only.

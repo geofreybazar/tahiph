@@ -1,0 +1,72 @@
+# Traefik v3 static configuration (production). See docs/DOCKER_ARCHITECTURE.md §3.
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+accessLog: {}
+
+ping: {}
+
+entryPoints:
+  web:
+    address: ':80'
+    http:
+      redirections:
+        entryPoint: { to: websecure, scheme: https }
+    forwardedHeaders:
+      trustedIPs:
+        &cloudflare # Cloudflare ranges — refresh with infrastructure/scripts/cloudflare-ips.sh
+        - 173.245.48.0/20
+        - 103.21.244.0/22
+        - 103.22.200.0/22
+        - 103.31.4.0/22
+        - 141.101.64.0/18
+        - 108.162.192.0/18
+        - 190.93.240.0/20
+        - 188.114.96.0/20
+        - 197.234.240.0/22
+        - 198.41.128.0/17
+        - 162.158.0.0/15
+        - 104.16.0.0/13
+        - 104.24.0.0/14
+        - 172.64.0.0/13
+        - 131.0.72.0/22
+        - 2400:cb00::/32
+        - 2606:4700::/32
+        - 2803:f800::/32
+        - 2405:b500::/32
+        - 2405:8100::/32
+        - 2a06:98c0::/29
+        - 2c0f:f248::/32
+  websecure:
+    address: ':443'
+    forwardedHeaders:
+      trustedIPs: *cloudflare
+    http:
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: tahi.ph
+            sans: ['*.tahi.ph']
+      middlewares:
+        - secure-headers@file
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      # email is set via the TRAEFIK_CERTIFICATESRESOLVERS_CLOUDFLARE_ACME_EMAIL env var
+      storage: /acme/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers: ['1.1.1.1:53', '1.0.0.1:53']
+
+providers:
+  docker:
+    endpoint: 'tcp://socket-proxy:2375'
+    exposedByDefault: false
+    network: tahi_edge
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: false

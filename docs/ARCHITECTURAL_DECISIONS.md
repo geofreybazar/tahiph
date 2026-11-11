@@ -87,7 +87,7 @@
 ## ADR-010 — S3-compatible object storage (Cloudflare R2 recommended)
 **Status:** Proposed
 **Decision:** An S3 API abstraction with presigned uploads. R2 is preferred (no egress fees; already on Cloudflare). Cloudinary is not used initially; image transforms come from `next/image` plus worker-side resizing.
-**Consequences:** No vendor lock-in (MinIO locally, R2 in production). We forgo Cloudinary's on-the-fly transformations.
+**Consequences:** No vendor lock-in (an S3-compatible local store — chosen in Phase 3 — and R2 in production). We forgo Cloudinary's on-the-fly transformations.
 
 ## ADR-011 — npm workspaces declared in `package.json`
 **Status:** Proposed
@@ -102,3 +102,45 @@
 **Status:** Proposed
 **Decision:** TAHI generates subscription invoices and drives dunning via worker jobs. PayMongo checkout is used per invoice. There is no dependency on provider-side recurring billing.
 **Consequences:** Full control over trials, proration and grace periods, at the cost of more code to build and test.
+
+---
+
+## ADR-014 — Phase 1 toolchain pins
+**Status:** Accepted (2026-11-11)
+**Context:** Versions were checked against the npm registry and peer dependencies on 2026-11-11.
+
+| Tool | Pinned | Why not latest |
+|---|---|---|
+| Node.js | 24.x LTS (`.nvmrc`, image `node:24.22.1-alpine`) | — |
+| TypeScript | 6.0.3 | 7.0 (native port) is latest, but `typescript-eslint` 8.72 requires `<6.1` |
+| Prisma | 7.10.1 + `@prisma/adapter-pg` | npm's `latest` dist-tag points to `8.0.0-rc.33`, a release candidate |
+| ESLint | 9.39.5 | ESLint 10 is current and 9 is flagged unsupported, but `eslint-plugin-react`, `-import` and `-jsx-a11y` (used by `eslint-config-next` 16) do not support 10 yet. Tracked as risk R17. |
+| Next.js / React | 16.4.6 / 19.3.1 | — |
+| NestJS | 12.4.2 | — |
+| Zod | 4.6.7 | — |
+| Vitest | 5.1.0 (+ `unplugin-swc` for decorator metadata) | — |
+| Turborepo | 2.11.10 | — |
+| PostgreSQL / Redis | 18 / 8 (Alpine images) | — |
+
+All versions are pinned exactly (no ranges) in `package.json` files.
+
+**Install scripts:** npm 11's `allowScripts` approves only `prisma`, `@prisma/engines` and `@swc/core`, after their scripts were reviewed. `msgpackr-extract` (an optional native build) is denied, and BullMQ uses its pure-JS fallback.
+
+## ADR-015 — ESM backend; in-house Zod pipe; OpenAPI generator deferred
+**Status:** Accepted (2026-11-11)
+**Context:** NestJS 12 ships as ESM only. `nestjs-zod` (the candidate in ADR-007) declares peers only up to NestJS 11.
+**Decision:**
+- All packages and the API are ESM (`"type": "module"`, `NodeNext`, `.js` import suffixes).
+- The API uses a small in-house `ZodValidationPipe` instead of `nestjs-zod`.
+- `@nestjs/config` is not used either. Env is validated by a Zod schema in `core/config/env.ts`, which keeps a single validation library.
+- The OpenAPI/Swagger generator is chosen in Phase 2 alongside the first real endpoints.
+**Consequences:** Fewer dependencies and no version-lag risk. A small amount of glue code is ours to maintain.
+
+## ADR-016 — No MinIO for local object storage
+**Status:** Accepted (2026-11-11)
+**Context:** MinIO stopped publishing community Docker images in 2025, and nothing needs object storage before uploads (Phase 3).
+**Decision:** Local S3 emulation is omitted from Phase 1. An S3-compatible local option is evaluated in Phase 3.
+
+## ADR-017 — Library build layout (`tsconfig.json` vs `tsconfig.build.json`)
+**Status:** Accepted (2026-11-11)
+**Decision:** In each package, `tsconfig.json` (noEmit) covers all sources including tests and is used by the editor, `tsc` typecheck and type-aware ESLint. `tsconfig.build.json` emits `dist/` and excludes specs. Internal packages are consumed as built ESM from `dist/` (Turborepo `^build` ordering), so the API runs plain Node without path aliases.

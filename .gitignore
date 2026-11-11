@@ -37,3 +37,7 @@ infrastructure/backups/
 # Testing
 playwright-report/
 test-results/
+**/src/generated/
+
+# Next.js
+next-env.d.ts

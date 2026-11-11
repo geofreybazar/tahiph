@@ -1,0 +1,33 @@
+/*
+ * TAHI design tokens (Tailwind v4). Editorial, minimal, premium.
+ * Apps import this after `@import "tailwindcss";` and add an `@source` for this package.
+ * Storefronts override --color-* and --font-* per tenant via StorefrontConfig (Phase 5).
+ */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+
+  --color-background: oklch(0.99 0.004 85);
+  --color-foreground: oklch(0.2 0.01 60);
+  --color-muted: oklch(0.955 0.006 85);
+  --color-muted-foreground: oklch(0.5 0.012 60);
+  --color-border: oklch(0.9 0.008 85);
+  --color-ring: oklch(0.45 0.03 60);
+  --color-primary: oklch(0.22 0.012 60);
+  --color-primary-foreground: oklch(0.985 0.004 85);
+  --color-accent: oklch(0.62 0.07 65);
+  --color-destructive: oklch(0.55 0.19 27);
+  --color-destructive-foreground: oklch(0.985 0.004 85);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}

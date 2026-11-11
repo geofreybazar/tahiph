@@ -1,0 +1,15 @@
+# Traefik dynamic configuration: shared middlewares.
+http:
+  middlewares:
+    secure-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: false
+        contentTypeNosniff: true
+        referrerPolicy: strict-origin-when-cross-origin
+        # Clients must never control the hostname the API sees (tenant resolution).
+        customRequestHeaders:
+          X-Forwarded-Host: ''
+    compress:
+      compress: {}
