@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
  * use it (docs/MULTI_TENANCY.md §4, CLAUDE.md rule 2). Extend the list only with review.
  */
 const ALLOWED = [
+  'core/audit/',
   'core/auth/',
   'core/database/',
   'core/tenancy/',

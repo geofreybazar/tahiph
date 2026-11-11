@@ -1,6 +1,7 @@
 /** BullMQ queue names (docs/SYSTEM_ARCHITECTURE.md §5). Add queues here as modules need them. */
 export const QUEUES = {
   maintenance: 'maintenance',
+  email: 'email',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

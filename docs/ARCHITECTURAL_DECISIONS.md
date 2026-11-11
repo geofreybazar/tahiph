@@ -194,3 +194,24 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
    - `@tahi/validation` contains no `tenantId`;
    - the RLS table set must equal `TENANT_MODELS`.
 **Consequences:** Fewer moving parts, and revocation takes effect immediately. CSRF (Origin check plus double-submit token) lands with the staff-auth branch, which introduces the first cookie-setting, state-changing routes.
+
+## ADR-020 — Staff authentication implementation choices
+**Status:** Proposed (2026-11-11, branch `feat/staff-auth`)
+**Decision:**
+1. **Argon2id from `node:crypto`** (Node 24's built-in `argon2`): no native npm dependency and no install script. It uses OWASP parameters (19 MiB, t=2, p=1), stores hashes in PHC format and rehashes on login when the parameters were weaker. About 27 ms per hash locally.
+2. **No SMTP library.** The worker sends email over HTTP with `fetch`: Resend's API in production, Mailpit's send API locally, and a log transport in tests and CI. The API only enqueues to BullMQ, so emails never wait on the provider. Jobs can contain one-time links, so completed jobs are removed immediately and failed jobs after 24 h.
+3. **Throttling** (limits from §5) uses fixed-window counters in Redis plus a per-account exponential backoff from the 5th failure (1, 2, 4… min, capped at 60). **It fails open when Redis is unavailable** (logged), so a Redis outage does not lock everyone out. Readiness reports Redis down, and Cloudflare rate limiting stays in front.
+4. **CSRF** applies to every non-GET request on browser hosts, public or not, so login CSRF is covered too:
+   - the `Origin` header must name the request host, with https required in production;
+   - the double-submit header must match a non-HttpOnly `__Host-tahi_csrf` cookie, issued by `GET /api/v1/auth/csrf`.
+5. **Invitations** are `AuthToken(INVITE)` rows with `metadata.roleId` (migration 0003, additive). The membership is created only on acceptance:
+   - An existing account must be signed in as the invited email.
+   - A new account is created from name + password; the email counts as verified by the link.
+   - The owner role cannot be invited.
+6. **Login** selects the active atelier automatically only when exactly one usable membership exists; otherwise the UI shows a picker (`POST /auth/switch-tenant`). Login, tenant switch, onboarding and invitation acceptance all rotate the session.
+7. **Onboarding status** is set by `TENANT_ONBOARDING_STATUS` (default `TRIAL`), pending business question Q6. `PENDING_APPROVAL` is supported, but no approval tooling exists until Phase 7.
+8. **Deferred:**
+   - optional staff TOTP (per-tenant enforcement);
+   - the breached-password (HIBP) check;
+   - listing and revoking one's own sessions;
+   - staff management beyond invitations (list, disable, change role), which is Phase 3.

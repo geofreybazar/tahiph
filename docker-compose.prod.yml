@@ -24,6 +24,14 @@ x-api-env: &api-env
   APP_HOST: app.tahi.ph
   ADMIN_HOST: admin.tahi.ph
   API_HOST: api.tahi.ph
+  STOREFRONT_ROOT_DOMAIN: tahi.ph
+  APP_PUBLIC_URL: https://app.tahi.ph
+  TENANT_ONBOARDING_STATUS: ${TENANT_ONBOARDING_STATUS:-TRIAL}
+  # Cloudflare overwrites this header; only Cloudflare can reach Traefik (DEPLOYMENT.md §3).
+  CLIENT_IP_HEADER: cf-connecting-ip
+  EMAIL_TRANSPORT: resend
+  EMAIL_FROM: ${EMAIL_FROM:-TAHI.ph <no-reply@tahi.ph>}
+  RESEND_API_KEY: ${RESEND_API_KEY:?}
 
 services:
   traefik:

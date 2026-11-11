@@ -49,7 +49,8 @@ Read `docs/` before working on any area. Key docs:
 - Services inject `TENANT_DB` and call `db()` (never hold a client). Use `withTenantTx(fn)` for multi-statement units of work; no external I/O inside it.
 - New tenant model: add it to `packages/database/src/tenancy/tenant-models.ts`, add the RLS SQL (`app_tenant_id()` policy, ENABLE + FORCE) to its migration, and use unchecked inputs (`tenantId` scalar). The RLS integration test fails otherwise.
 - Routes: `@Realm()` plus `@Public()`, `@Authenticated()` or `@RequirePermission()`. The API won't start otherwise.
-- Integration tests run as a non-superuser, non-BYPASSRLS role. Use `apps/api/test/fixtures.ts` (unique data, no cleanup).
+- Integration tests run as a non-superuser, non-BYPASSRLS role. Use `apps/api/test/fixtures.ts` (unique data, no cleanup) and `test/browser.ts` (cookies + CSRF) for HTTP flows.
+- Every non-GET browser request needs `Origin` + `X-CSRF-Token` (from `GET /api/v1/auth/csrf`). Emails go through `MAILER` (BullMQ queue), never sent inline.
 
 ## Conventions
 - **ESM everywhere** (NestJS 12 is ESM-only). Use relative imports with a `.js` suffix in TS sources.

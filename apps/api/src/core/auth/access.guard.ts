@@ -19,6 +19,7 @@ import { ForbiddenError, NotFoundError, UnauthenticatedError } from '../http/dom
 import { classifyHost, normalizeHost, realmServedOn } from '../tenancy/host.js';
 import { TenantDomainResolver } from '../tenancy/tenant-domain.resolver.js';
 import { SESSION_COOKIES, readCookie } from './cookies.js';
+import { assertCsrf } from './csrf.js';
 import { readRouteAccess, type RouteAccess } from './route-access.js';
 import { SessionService, type ActiveSession } from './session.service.js';
 
@@ -71,6 +72,8 @@ export class AccessGuard implements CanActivate {
       throw new NotFoundError();
     this.cls.set('realm', access.realm);
     this.cls.set('host', host);
+    // Every state-changing request on a browser host, public or not (login CSRF included).
+    assertCsrf(req, host, this.env.NODE_ENV === 'production');
 
     if (access.realm === 'public' || access.realm === 'customer') {
       const tenant = await this.domains.resolve(host);

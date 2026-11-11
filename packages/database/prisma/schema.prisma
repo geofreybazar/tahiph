@@ -152,6 +152,8 @@ model AuthToken {
   subjectId String?          @map("subject_id") @db.Uuid
   tenantId  String?          @map("tenant_id") @db.Uuid
   email     String?          @db.Citext
+  /// Purpose-specific data, e.g. { roleId } for INVITE. Validated with Zod where read.
+  metadata  Json?
   attempts  Int              @default(0)
   expiresAt DateTime         @map("expires_at") @db.Timestamptz(3)
   usedAt    DateTime?        @map("used_at") @db.Timestamptz(3)

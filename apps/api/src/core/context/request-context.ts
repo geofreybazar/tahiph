@@ -21,3 +21,18 @@ export interface RequestContext extends ClsStore {
   /** Ambient tenant transaction client (withTenantTx). */
   tenantTx?: unknown;
 }
+
+/**
+ * Reads a context value the access guard must have set for this route. A missing value is a
+ * programming error (wrong decorator), so it fails loudly rather than defaulting.
+ */
+export function requireContext<K extends 'tenantId' | 'sessionId' | 'userId' | 'membershipId'>(
+  cls: { get(key: K): unknown },
+  key: K,
+): string {
+  const value = cls.get(key);
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Request context is missing ${key}`);
+  }
+  return value;
+}

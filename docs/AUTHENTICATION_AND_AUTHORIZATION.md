@@ -1,6 +1,11 @@
 # Authentication & Authorization — TAHI.ph
 
-> **Status:** Phase 2 in progress. **Implemented:** sessions (`SessionService`), the global access guard, decorators and the permission catalogue (`packages/types/src/permissions.ts`); see ADR-019. **Planned:** login, registration, reset, invitations, MFA and customer OTP flows; CSRF.
+> **Status:** Phase 2 in progress.
+> **Implemented:**
+> - sessions (`SessionService`), the global access guard, decorators and the permission catalogue (`packages/types/src/permissions.ts`); see ADR-019;
+> - staff register, verify, login, logout, me, switch-tenant, forgot/reset password, onboarding and invitations, plus CSRF and throttling; see ADR-020.
+>
+> **Planned:** platform admin login with TOTP, customer OTP, optional staff TOTP, the HIBP check and session management.
 > **Decision:** opaque server-side sessions (ADR-002). JWTs are not used for browser auth.
 
 ## 1. Realms

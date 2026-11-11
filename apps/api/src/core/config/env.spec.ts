@@ -7,6 +7,8 @@ const valid = {
   APP_HOST: 'app.tahi.ph',
   ADMIN_HOST: 'admin.tahi.ph',
   API_HOST: 'api.tahi.ph',
+  STOREFRONT_ROOT_DOMAIN: 'tahi.ph',
+  APP_PUBLIC_URL: 'https://app.tahi.ph/',
 };
 
 describe('loadEnv', () => {
@@ -19,6 +21,21 @@ describe('loadEnv', () => {
     for (const APP_HOST of ['https://app.tahi.ph', 'app.tahi.ph:443', 'App.tahi.ph']) {
       expect(() => loadEnv({ ...valid, APP_HOST })).toThrow(InvalidEnvironmentError);
     }
+  });
+
+  it('normalizes the public URL and requires email settings consistently', () => {
+    expect(loadEnv(valid).APP_PUBLIC_URL).toBe('https://app.tahi.ph');
+    expect(() => loadEnv({ ...valid, EMAIL_TRANSPORT: 'resend' })).toThrow(/RESEND_API_KEY/);
+    expect(() => loadEnv({ ...valid, NODE_ENV: 'production' })).toThrow(/EMAIL_TRANSPORT/);
+    expect(() =>
+      loadEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        EMAIL_TRANSPORT: 'resend',
+        RESEND_API_KEY: 'k',
+        APP_PUBLIC_URL: 'http://x.ph',
+      }),
+    ).toThrow(/https/);
   });
 
   it('coerces numeric strings', () => {

@@ -16,6 +16,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthCoreModule } from '../src/core/auth/auth-core.module.js';
 import { SESSION_COOKIES } from '../src/core/auth/cookies.js';
+import { CSRF_COOKIE } from '../src/core/auth/csrf.js';
 import {
   AllowMfaPending,
   Authenticated,
@@ -134,6 +135,7 @@ class ProbeModule {}
 // --- Tests ---------------------------------------------------------------------------------
 
 const APP = 'app.tahi.test';
+const CSRF = 'c'.repeat(43);
 const ADMIN = 'admin.tahi.test';
 
 describe('Access guard (integration: real PostgreSQL)', () => {
@@ -300,12 +302,27 @@ describe('Access guard (integration: real PostgreSQL)', () => {
       ).toBe('NOT_FOUND');
     });
 
+    it('rejects state-changing requests without Origin and CSRF token', async () => {
+      const s = await staffSession(A, 'owner');
+      const post = () =>
+        request(server())
+          .post('/api/v1/tenant/probe/roles')
+          .set('Host', APP)
+          .set('Cookie', s.cookie);
+      expect(errorCode((await post().expect(403)).body)).toBe('CSRF_ORIGIN_MISMATCH');
+      expect(errorCode((await post().set('Origin', `http://${APP}`).expect(403)).body)).toBe(
+        'CSRF_TOKEN_INVALID',
+      );
+    });
+
     it('writes inside withTenantTx land in the active tenant only', async () => {
       const s = await staffSession(A, 'owner');
       const res = await request(server())
         .post('/api/v1/tenant/probe/roles')
         .set('Host', APP)
-        .set('Cookie', s.cookie)
+        .set('Origin', `http://${APP}`)
+        .set('X-CSRF-Token', CSRF)
+        .set('Cookie', `${s.cookie}; ${CSRF_COOKIE}=${CSRF}`)
         .expect(201);
       const created = (res.body as { data: { id: string; tenantId: string } }).data;
       expect(created.tenantId).toBe(A.tenantId);

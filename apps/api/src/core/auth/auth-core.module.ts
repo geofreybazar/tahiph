@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { APP_GUARD, DiscoveryModule } from '@nestjs/core';
 import { TenantDomainResolver } from '../tenancy/tenant-domain.resolver.js';
 import { AccessGuard } from './access.guard.js';
+import { AuthTokenService } from './auth-token.service.js';
+import { RateLimiter, redisRateLimitStoreProvider } from './rate-limit.js';
 import { RouteAccessAudit } from './route-audit.js';
 import { SessionService } from './session.service.js';
 
@@ -11,10 +13,13 @@ import { SessionService } from './session.service.js';
   imports: [DiscoveryModule],
   providers: [
     SessionService,
+    AuthTokenService,
+    RateLimiter,
+    redisRateLimitStoreProvider,
     TenantDomainResolver,
     RouteAccessAudit,
     { provide: APP_GUARD, useClass: AccessGuard },
   ],
-  exports: [SessionService, TenantDomainResolver],
+  exports: [SessionService, AuthTokenService, RateLimiter, TenantDomainResolver],
 })
 export class AuthCoreModule {}
