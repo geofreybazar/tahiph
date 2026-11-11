@@ -79,6 +79,29 @@ enum CustomerAccountStatus {
   DISABLED
 }
 
+enum ClientSource {
+  WALK_IN
+  REFERRAL
+  STOREFRONT
+  SOCIAL
+  OTHER
+}
+
+enum CommunicationChannel {
+  CALL
+  SMS
+  EMAIL
+  MESSENGER
+  VIBER
+  IN_PERSON
+  OTHER
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+}
+
 /// Default unit for new measurement records (Q2). Each record also stores its own unit.
 enum MeasurementUnit {
   CM
@@ -214,6 +237,7 @@ model Tenant {
   settings         TenantSettings?
   operatingHours   OperatingHours[]
   holidays         Holiday[]
+  clients          Client[]
 
   @@map("tenant")
 }
@@ -283,6 +307,9 @@ model TenantMembership {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
   role   Role   @relation(fields: [tenantId, roleId], references: [tenantId, id], onDelete: Restrict)
+
+  clientNotes    ClientNote[]
+  communications Communication[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, userId])
@@ -432,4 +459,83 @@ model Holiday {
   @@unique([tenantId, id])
   @@unique([tenantId, date])
   @@map("holiday")
+}
+
+// ---------------------------------------------------------------------------
+// CRM (tenant-owned, RLS). Clients are archived, never deleted (DATABASE_DESIGN.md §5).
+// ---------------------------------------------------------------------------
+
+model Client {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  firstName    String       @map("first_name")
+  lastName     String?      @map("last_name")
+  /// Not unique: family members often share one email.
+  email        String?      @db.Citext
+  phone        String?
+  birthday     DateTime?    @db.Date
+  addressLine1 String?      @map("address_line1")
+  addressLine2 String?      @map("address_line2")
+  city         String?
+  province     String?
+  postalCode   String?      @map("postal_code")
+  /// Free-text style and fit preferences.
+  preferences  String?
+  source       ClientSource @default(OTHER)
+  /// Lower-case, deduplicated by the API.
+  tags         String[]     @default([])
+  archivedAt   DateTime?    @map("archived_at") @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  notes          ClientNote[]
+  communications Communication[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, map: "client_first_name_trgm_idx")
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, map: "client_last_name_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "client_phone_trgm_idx")
+  @@index([tags], type: Gin)
+  @@map("client")
+}
+
+/// Internal note on a client. Never edited; the author may delete it.
+model ClientNote {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  clientId           String   @map("client_id") @db.Uuid
+  authorMembershipId String   @map("author_membership_id") @db.Uuid
+  body               String
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client Client           @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  author TenantMembership @relation(fields: [tenantId, authorMembershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, clientId, createdAt(sort: Desc)])
+  @@index([tenantId, authorMembershipId])
+  @@map("client_note")
+}
+
+/// A logged interaction with a client (call, message, visit).
+model Communication {
+  id                     String                 @id @default(uuid(7)) @db.Uuid
+  tenantId               String                 @map("tenant_id") @db.Uuid
+  clientId               String                 @map("client_id") @db.Uuid
+  channel                CommunicationChannel
+  direction              CommunicationDirection
+  summary                String
+  occurredAt             DateTime               @map("occurred_at") @db.Timestamptz(3)
+  recordedByMembershipId String                 @map("recorded_by_membership_id") @db.Uuid
+  createdAt              DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client     Client           @relation(fields: [tenantId, clientId], references: [tenantId, id], onDelete: Restrict)
+  recordedBy TenantMembership @relation(fields: [tenantId, recordedByMembershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, clientId, occurredAt(sort: Desc)])
+  @@index([tenantId, recordedByMembershipId])
+  @@map("communication")
 }

@@ -8,3 +8,4 @@ export * from './customer-auth.js';
 export * from './tenant-settings.js';
 export * from './staff.js';
 export * from './roles.js';
+export * from './clients.js';

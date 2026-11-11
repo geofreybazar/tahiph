@@ -13,6 +13,9 @@ export const TENANT_MODELS = {
   TenantSettings: 'tenant_settings',
   OperatingHours: 'operating_hours',
   Holiday: 'holiday',
+  Client: 'client',
+  ClientNote: 'client_note',
+  Communication: 'communication',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

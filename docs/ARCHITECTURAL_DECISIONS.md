@@ -290,3 +290,16 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - Name uniqueness (case-insensitive) is checked in the service, not constrained in the database. Two concurrent creates can both succeed; this is accepted for now and marked with a `shortcut:` comment.
 - No migration: `role` and `role_permission` already exist.
 **Consequences:** An Admin cannot edit a role beyond their own permission set, even when that role holds more. Only the Owner can manage those.
+
+## ADR-026 — CRM: clients, notes and communications
+**Status:** Accepted (2026-11-11, product owner approved the Phase 3 step 4 scope, including non-unique client emails)
+**Context:** The dashboard needs client profiles, internal notes and a communication log, with fast search at 10k clients per atelier.
+**Decision:**
+- `client`, `client_note` and `communication` are tenant tables (migration `0007`). Notes and communications reference their client and their author through composite `(tenant_id, …)` foreign keys.
+- **Client emails are not unique.** Families often share one; duplicates are found by search.
+- **Clients are archived, never deleted.** Archive and restore are idempotent; lists hide archived clients unless `status=archived|all`.
+- **Notes are never edited.** Only the author may delete one, and a note id must belong to the client in the path.
+- **Search** is a case-insensitive substring match on first name, last name, email and phone. First name, last name and phone have `pg_trgm` GIN indexes. They are not tenant-leading (a GIN trigram index cannot lead with a uuid without `btree_gin`); the tenant filter still comes from RLS and the scoped client. Email (citext) has no trigram index. A tenant's rows are bounded, so the match stays cheap.
+- **Pagination** is keyset on `(created_at DESC, id DESC)` with an opaque base64url cursor (`core/http/cursor.ts`). A malformed cursor is a 422.
+- The cross-tenant suite gained `fresh` fixtures: kinds whose own-id control deletes them get a new id per request.
+**Consequences:** Notes and communications lists return the latest 200 without pagination (marked with `shortcut:`). Attachments, design references and order history arrive with uploads and Phase 4.

@@ -65,6 +65,8 @@
 - `Attachment`: polymorphic on (ownerType, ownerId), object key, mime, size, visibility (`PRIVATE`/`PUBLIC`)
 - `DesignReference`: clientId, orderItemId?, image/attachment, notes
 
+**Implemented (Phase 3, migration `0007_clients`, ADR-026):** `Client`, `ClientNote` (author is a membership) and `Communication` (direction `INBOUND`/`OUTBOUND`, recorded by a membership). Preferences are free text, not jsonb. The `CustomerAccount.clientId` link waits for Phase 5; attachments and design references wait for uploads.
+
 **Measurements**
 - `GarmentCategory`: tenant-defined (Bridal Gown, Barong Tagalog, Men's Suit…), seeded from platform defaults
 - `MeasurementTemplate`: categoryId, version, isCurrent. Templates are **versioned**: editing fields creates a new version.

@@ -19,6 +19,7 @@ import { routesOf } from '../src/core/http/openapi.factory.js';
 import type { RouteInfo } from '../src/core/http/route-inventory.js';
 import { AuthModule } from '../src/modules/auth/auth.module.js';
 import { PlatformModule } from '../src/modules/platform/platform.module.js';
+import { ClientsModule } from '../src/modules/clients/clients.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { Browser } from './browser.js';
 import {
@@ -50,6 +51,19 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'InvitationsController.revoke': () => ({}),
   'RolesController.update': () => ({ name: `Renamed ${suffix()}` }),
   'RolesController.remove': () => ({}),
+  'ClientsController.get': () => ({}),
+  'ClientsController.update': () => ({ firstName: 'Bea' }),
+  'ClientsController.archive': () => ({}),
+  'ClientsController.restore': () => ({}),
+  'ClientsController.notes': () => ({}),
+  'ClientsController.addNote': () => ({ body: 'Measured for a terno' }),
+  'ClientsController.deleteNote': () => ({}),
+  'ClientsController.communications': () => ({}),
+  'ClientsController.addCommunication': () => ({
+    channel: 'CALL',
+    direction: 'INBOUND',
+    summary: 'Asked about fittings',
+  }),
 };
 
 /** Realms whose routes act inside one atelier. Platform routes take tenant ids by design. */
@@ -58,6 +72,8 @@ const TENANT_SCOPED_REALMS = new Set(['tenant', 'customer', 'public']);
 interface Side {
   tenant: TenantFixture;
   resources: Record<string, string>;
+  /** Kinds a request may consume (deleted by the own-id control): a new id per request. */
+  fresh: Record<string, () => Promise<string>>;
 }
 
 function uuidBodyFields(schema: z.ZodType | undefined): string[] {
@@ -114,9 +130,27 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         data: { tenantId: tenant.tenantId, key: `custom-${suffix()}`, name: `Custom ${suffix()}` },
       }),
     );
+    const client = await asTenant(prisma, tenant.tenantId, (tx) =>
+      tx.client.create({ data: { tenantId: tenant.tenantId, firstName: 'Ana' } }),
+    );
+    // A note by the atelier's owner (the actor, on side A), so the own-id control may delete it.
+    const note = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const n = await tx.clientNote.create({
+          data: {
+            tenantId: tenant.tenantId,
+            clientId: client.id,
+            authorMembershipId: member.id,
+            body: 'Prefers silk',
+          },
+        });
+        return n.id;
+      });
     return {
       tenant,
+      fresh: { clientNote: note },
       resources: {
+        client: client.id,
         customRole: customRole.id,
         role: tenant.roles.staff!,
         membership: member.id,
@@ -161,6 +195,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         AuditModule,
         AuthModule,
         TenantsModule,
+        ClientsModule,
         PlatformModule,
       ],
     })
@@ -221,6 +256,9 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'InvitationsController.create',
         'InvitationsController.revoke',
         'RolesController.remove',
+        'ClientsController.update',
+        'ClientsController.deleteNote',
+        'ClientsController.addCommunication',
         'RolesController.update',
         'AuthController.switchTenant',
         'StaffController.update',
@@ -251,7 +289,8 @@ describe('Cross-tenant isolation for every route (integration)', () => {
           const body: Record<string, unknown> = SAMPLES[route.operationId]!();
           for (const [f, k] of Object.entries(route.references)) {
             // Only the field under test points at `owner`; the others stay valid for A.
-            const id = (f === field ? owner : A).resources[k];
+            const who = f === field ? owner : A;
+            const id = who.fresh[k] ? await who.fresh[k]() : who.resources[k];
             if (!id) throw new Error(`no fixture for resource kind ${k}`);
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
             else body[f] = id;
