@@ -196,7 +196,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 **Consequences:** Fewer moving parts, and revocation takes effect immediately. CSRF (Origin check plus double-submit token) lands with the staff-auth branch, which introduces the first cookie-setting, state-changing routes.
 
 ## ADR-020 — Staff authentication implementation choices
-**Status:** Proposed (2026-11-11, branch `feat/staff-auth`)
+**Status:** Accepted (2026-11-11, approved by the product owner)
 **Decision:**
 1. **Argon2id from `node:crypto`** (Node 24's built-in `argon2`): no native npm dependency and no install script. It uses OWASP parameters (19 MiB, t=2, p=1), stores hashes in PHC format and rehashes on login when the parameters were weaker. About 27 ms per hash locally.
 2. **No SMTP library.** The worker sends email over HTTP with `fetch`: Resend's API in production, Mailpit's send API locally, and a log transport in tests and CI. The API only enqueues to BullMQ, so emails never wait on the provider. Jobs can contain one-time links, so completed jobs are removed immediately and failed jobs after 24 h.
