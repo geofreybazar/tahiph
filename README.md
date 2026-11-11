@@ -57,7 +57,7 @@ DATABASE_URL=postgresql://tahi_owner:<owner-pw>@127.0.0.1:5432/tahi npm run db:m
 npm run dev                             # all apps in watch mode
 ```
 
-Migrations run as `tahi_owner`; the API connects as the least-privilege `tahi_app` role.
+Migrations run as `tahi_owner`; the API connects as the least-privilege `tahi_app` role. Set `ENCRYPTION_KEYS` in `apps/api/.env` (`echo "k1:$(openssl rand -base64 32)"`). Emails land in Mailpit at http://127.0.0.1:8025.
 
 | Command | What it does |
 |---|---|
@@ -67,5 +67,7 @@ Migrations run as `tahi_owner`; the API connects as the least-privilege `tahi_ap
 | `npm run format` | Prettier |
 | `npm run db:generate` / `db:migrate:dev` / `db:migrate:deploy` | Prisma |
 | `npm run dev:worker -w @tahi/api` | Run the background worker |
+| `npm run db:drift` | Check migrations match `schema.prisma` |
+| `printf '%s' "$PW" \| npm run create-super-admin -w @tahi/api -- --email … --name …` | Create the first platform Super Admin (once) |
 
 Health endpoints: `GET /api/health/live`, `GET /api/health/ready` (API); `GET /healthz` (each Next app).

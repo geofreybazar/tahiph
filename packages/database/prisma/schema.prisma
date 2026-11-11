@@ -95,10 +95,28 @@ model PlatformUser {
   /// AES-256-GCM ciphertext of the TOTP secret (key id prefix allows rotation).
   mfaSecretEnc  Bytes?             @map("mfa_secret_enc")
   mfaEnrolledAt DateTime?          @map("mfa_enrolled_at") @db.Timestamptz(3)
+  /// Last accepted TOTP time step; a code is never accepted twice (replay protection).
+  mfaLastStep   BigInt?            @map("mfa_last_step")
   createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  recoveryCodes PlatformRecoveryCode[]
+
   @@map("platform_user")
+}
+
+/// Single-use MFA recovery codes (SHA-256 hashes only), issued at TOTP enrollment.
+model PlatformRecoveryCode {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  platformUserId String    @map("platform_user_id") @db.Uuid
+  codeHash       Bytes     @unique @map("code_hash")
+  usedAt         DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  platformUser PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@index([platformUserId])
+  @@map("platform_recovery_code")
 }
 
 /// Tenant staff identity: one per person, may belong to several tenants.

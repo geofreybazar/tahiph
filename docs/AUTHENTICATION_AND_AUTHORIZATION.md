@@ -3,9 +3,10 @@
 > **Status:** Phase 2 in progress.
 > **Implemented:**
 > - sessions (`SessionService`), the global access guard, decorators and the permission catalogue (`packages/types/src/permissions.ts`); see ADR-019;
-> - staff register, verify, login, logout, me, switch-tenant, forgot/reset password, onboarding and invitations, plus CSRF and throttling; see ADR-020.
+> - staff register, verify, login, logout, me, switch-tenant, forgot/reset password, onboarding and invitations, plus CSRF and throttling; see ADR-020;
+> - platform admin login with mandatory TOTP, recovery codes and the Super Admin bootstrap CLI; see ADR-021.
 >
-> **Planned:** platform admin login with TOTP, customer OTP, optional staff TOTP, the HIBP check and session management.
+> **Planned:** customer OTP, step-up re-authentication, optional staff TOTP, the HIBP check and session management.
 > **Decision:** opaque server-side sessions (ADR-002). JWTs are not used for browser auth.
 
 ## 1. Realms

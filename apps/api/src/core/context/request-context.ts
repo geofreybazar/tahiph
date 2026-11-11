@@ -15,6 +15,8 @@ export interface RequestContext extends ClsStore {
   sessionId?: string;
   userId?: string;
   platformUserId?: string;
+  /** Platform sessions: whether the TOTP step is complete. */
+  mfaVerified?: boolean;
   membershipId?: string;
   customerSessionTenantId?: string;
   permissions?: ReadonlySet<Permission>;

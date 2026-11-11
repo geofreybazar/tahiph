@@ -78,6 +78,12 @@ curl -fsS https://app.tahi.ph/api/health/ready
 echo "$(date -u +%FT%TZ) $TAG" >> releases.log
 ```
 
+- **First deploy only:** create the first Super Admin. The password is read from stdin and never passed as an argument:
+  ```bash
+  read -rs PW && printf '%s' "$PW" | docker compose -f docker-compose.prod.yml run --rm -T api \
+    node dist/cli/main.create-super-admin.js --email ops@tahi.ph --name "TAHI Ops"; unset PW
+  ```
+  The CLI refuses once a Super Admin exists. TOTP is enrolled at the first login on `admin.tahi.ph`.
 - **Migrations** must be backward-compatible with the previous release (expand → migrate → contract), so a failed app rollout can roll back without a DB rollback.
 - **Destructive migrations** (drop/rename) require explicit approval and a fresh backup taken right before.
 - **Rollback:** `deploy.sh <previous-sha>` (images stay in GHCR).

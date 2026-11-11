@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SecretBox } from '../crypto/secret-box.js';
 
 // Lower-case hostname without scheme or port.
 const hostname = z
@@ -45,6 +46,18 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(3).default('TAHI.ph <no-reply@tahi.ph>'),
   MAILPIT_URL: z.url({ protocol: /^https?$/ }).default('http://127.0.0.1:8025'),
   RESEND_API_KEY: z.string().min(1).optional(),
+  /**
+   * AES-256-GCM key ring for secrets at rest: "id:base64(32 bytes)[,id:...]", first = active.
+   * Generate with: echo "k1:$(openssl rand -base64 32)"
+   */
+  ENCRYPTION_KEYS: z.string().refine((v) => {
+    try {
+      SecretBox.fromEnv(v);
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'must be id:base64key entries with 32-byte keys'),
 });
 
 const refinedEnvSchema = envSchema.superRefine((env, ctx) => {

@@ -15,6 +15,8 @@ export class Browser {
   constructor(
     private readonly server: () => App,
     readonly host: string,
+    /** Endpoint that issues the CSRF cookie for this host's realm. */
+    private readonly csrfPath = 'auth/csrf',
   ) {}
 
   private cookieHeader(): string {
@@ -45,7 +47,7 @@ export class Browser {
   }
 
   async post(path: string, body: object = {}) {
-    if (!this.cookies.has('__Host-tahi_csrf')) await this.get('auth/csrf');
+    if (!this.cookies.has('__Host-tahi_csrf')) await this.get(this.csrfPath);
     const res = await request(this.server())
       .post(`/api/v1/${path}`)
       .set('Host', this.host)

@@ -9,6 +9,7 @@ const valid = {
   API_HOST: 'api.tahi.ph',
   STOREFRONT_ROOT_DOMAIN: 'tahi.ph',
   APP_PUBLIC_URL: 'https://app.tahi.ph/',
+  ENCRYPTION_KEYS: `k1:${Buffer.alloc(32, 7).toString('base64')}`,
 };
 
 describe('loadEnv', () => {
@@ -36,6 +37,16 @@ describe('loadEnv', () => {
         APP_PUBLIC_URL: 'http://x.ph',
       }),
     ).toThrow(/https/);
+  });
+
+  it('validates the encryption key ring without echoing it', () => {
+    try {
+      loadEnv({ ...valid, ENCRYPTION_KEYS: 'k1:c2hvcnQ=' });
+      expect.unreachable();
+    } catch (e) {
+      expect(String(e)).toContain('ENCRYPTION_KEYS');
+      expect(String(e)).not.toContain('c2hvcnQ=');
+    }
   });
 
   it('coerces numeric strings', () => {

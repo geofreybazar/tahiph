@@ -215,3 +215,24 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
    - the breached-password (HIBP) check;
    - listing and revoking one's own sessions;
    - staff management beyond invitations (list, disable, change role), which is Phase 3.
+
+## ADR-021 — Platform admin authentication
+**Status:** Proposed (2026-11-11, branch `feat/platform-auth`)
+**Decision:**
+1. **TOTP is implemented in-house** (RFC 6238 on `node:crypto`: HMAC-SHA1, 30 s, 6 digits, ±1 step), checked against the RFC test vectors, so no dependency is needed.
+   - Each accepted time step is stored (`platform_user.mfa_last_step`), so a code can never be used twice.
+   - Attempts are limited to 5 per session per 15 minutes.
+2. **Two-step login:**
+   - The password yields a **5-minute pre-MFA session** that only `@AllowMfaPending()` endpoints accept.
+   - A valid TOTP or recovery code revokes it and issues a full session (30 min idle, 12 h absolute) with `mfaVerifiedAt` set.
+   - First login enrolls the authenticator. Once enrolled, enrollment cannot be restarted from a password-only session.
+3. **TOTP secrets are encrypted** with AES-256-GCM (`SecretBox`).
+   - The key ring comes from `ENCRYPTION_KEYS` ("id:base64key", first = active). The key id is stored with each ciphertext, so keys can rotate.
+   - The admin row id is bound as associated data.
+   - The same box will hold tenant provider credentials (Phase 6).
+4. **Recovery codes:** 10 single-use codes (~49 bits each), shown once at enrollment and stored as SHA-256 hashes (`platform_recovery_code`, migration 0004).
+5. **First Super Admin:** created with `node dist/cli/main.create-super-admin.js --email … --name …`.
+   - The password comes from stdin or `SUPER_ADMIN_PASSWORD`, never from argv.
+   - The insert runs in a serializable transaction that refuses if any Super Admin exists.
+   - There is no self-registration. Further admins are created in the admin dashboard (Phase 7).
+**Deferred to Phase 7:** step-up re-authentication for sensitive actions, resetting MFA for an admin who lost their device (Super Admin action), admin management, and WebAuthn.

@@ -85,6 +85,13 @@ jobs:
         env:
           DATABASE_URL: postgresql://tahi_owner:ci-owner@localhost:5432/tahi
         run: npm run drift -w @tahi/database
+      - name: Super Admin bootstrap CLI (creates once, then refuses)
+        run: |
+          npx turbo run build --filter=@tahi/api
+          printf '%s' 'ci only password 123' | node apps/api/dist/cli/main.create-super-admin.js --email ops@tahi.test --name Ops
+          if printf '%s' 'ci only password 123' | node apps/api/dist/cli/main.create-super-admin.js --email two@tahi.test --name Two; then
+            echo 'second Super Admin must be refused'; exit 1
+          fi
       - run: npx turbo run test:int
 
   docker:

@@ -154,6 +154,7 @@ export class AccessGuard implements CanActivate {
       throw new UnauthenticatedError('Multi-factor authentication is required.');
     }
     this.cls.set('platformUserId', admin.id);
+    this.cls.set('mfaVerified', session.mfaVerifiedAt !== null);
     const perms = new Set<Permission>(
       session.mfaVerifiedAt ? PLATFORM_ROLE_PERMISSIONS[admin.role] : [],
     );

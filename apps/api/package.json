@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --project unit",
-    "test:int": "vitest run --project integration"
+    "test:int": "vitest run --project integration",
+    "create-super-admin": "node dist/cli/main.create-super-admin.js"
   },
   "dependencies": {
     "@nestjs/bullmq": "12.0.1",

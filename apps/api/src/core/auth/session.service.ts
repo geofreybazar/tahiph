@@ -26,6 +26,8 @@ export interface CreateSessionInput {
   mfaVerified?: boolean;
   ip?: string;
   userAgent?: string;
+  /** Shorter lifetime than the realm default (e.g. a 5-minute pre-MFA session). */
+  maxLifetimeMs?: number;
 }
 
 export interface ActiveSession {
@@ -58,7 +60,9 @@ export class SessionService {
     now = new Date(),
   ): Promise<{ token: string; id: string }> {
     const token = randomBytes(32).toString('base64url');
-    const life = SESSION_LIFETIMES[input.realm];
+    const base = SESSION_LIFETIMES[input.realm];
+    const cap = input.maxLifetimeMs ?? Infinity;
+    const life = { idleMs: Math.min(base.idleMs, cap), absoluteMs: Math.min(base.absoluteMs, cap) };
     const session = await this.prisma.session.create({
       data: {
         tokenHash: hashToken(token),

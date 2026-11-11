@@ -32,6 +32,7 @@ x-api-env: &api-env
   EMAIL_TRANSPORT: resend
   EMAIL_FROM: ${EMAIL_FROM:-TAHI.ph <no-reply@tahi.ph>}
   RESEND_API_KEY: ${RESEND_API_KEY:?}
+  ENCRYPTION_KEYS: ${ENCRYPTION_KEYS:?}
 
 services:
   traefik:

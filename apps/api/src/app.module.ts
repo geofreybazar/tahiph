@@ -6,6 +6,7 @@ import { HttpModule } from './core/http/http.module.js';
 import { QueueModule } from './core/queue/queue.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { PlatformModule } from './modules/platform/platform.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
 
 /** HTTP API composition root. Domain modules are added here from Phase 2. */
@@ -19,6 +20,7 @@ import { TenantsModule } from './modules/tenants/tenants.module.js';
     HealthModule,
     AuthModule,
     TenantsModule,
+    PlatformModule,
   ],
 })
 export class AppModule {}
