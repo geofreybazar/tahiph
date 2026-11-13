@@ -81,7 +81,7 @@ Work items:
 - [x] `feat/measurements`: garment categories, versioned templates, immutable records (ADR-027). Merged 2026-11-11. Meets the exit criterion "measurement revisions are immutable".
 - [x] `feat/appointments` (step 6a, merged 2026-11-11): types, staff availability and time off, slots, booking with the exclusion constraint, reschedule and status changes (ADR-028). Meets the exit criterion "double-booking concurrency test passes".
 - [x] `feat/appointment-reminders` (step 6b, merged 2026-11-11): 24-hour email reminders from the worker, first tenant-scoped background job (ADR-029).
-- [ ] `feat/catalog` (in review, step 7): categories, products and services, shared option groups (ADR-030).
+- [x] `feat/catalog` (step 7, merged 2026-11-11): categories, products and services, shared option groups (ADR-030).
 - [ ] Uploads pipeline (needs a storage dependency decision and an ADR).
 - [ ] Proposed, not yet approved: client data export and erasure (RA 10173, `SECURITY.md` §4), before launch.
 
