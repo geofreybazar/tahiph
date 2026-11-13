@@ -8,6 +8,7 @@ import { TENANT_DB } from '../../core/database/tenant-database.provider.js';
 import { AppointmentsService } from '../appointments/appointments.service.js';
 import { ClientsService } from '../clients/clients.service.js';
 import { MeasurementsService } from '../measurements/measurements.service.js';
+import { QuotationsService } from '../quotations/quotations.service.js';
 
 /**
  * Data-subject export and erasure (RA 10173, ADR-032). Each owning module exports and erases
@@ -24,6 +25,7 @@ export class PrivacyService {
     private readonly clients: ClientsService,
     private readonly measurements: MeasurementsService,
     private readonly appointments: AppointmentsService,
+    private readonly quotations: QuotationsService,
   ) {}
 
   private audited(action: string, clientId: string, ip: string, metadata?: { reason: string }) {
@@ -44,6 +46,7 @@ export class PrivacyService {
       const { client, notes, communications } = await this.clients.exportData(clientId);
       const measurements = await this.measurements.exportForClient(clientId);
       const appointments = await this.appointments.exportForClient(clientId);
+      const quotations = await this.quotations.exportForClient(clientId);
       await this.audited('client.exported', clientId, ip);
       return {
         exportedAt: new Date().toISOString(),
@@ -52,6 +55,7 @@ export class PrivacyService {
         communications,
         measurements,
         appointments,
+        quotations,
       };
     });
   }
@@ -61,6 +65,7 @@ export class PrivacyService {
     await this.tenantDb.withTenantTx(async () => {
       await this.clients.get(clientId); // 404 first, before any other check
       await this.appointments.eraseForClient(clientId);
+      await this.quotations.eraseForClient(clientId); // before measurements: it drops their links
       await this.measurements.eraseForClient(clientId);
       await this.clients.eraseData(clientId);
       await this.audited('client.erased', clientId, ip, { reason: body.reason });

@@ -11,7 +11,7 @@
 | Naming | Prisma models in `PascalCase` and fields in `camelCase`, mapped to `snake_case` tables/columns via `@@map`/`@map` |
 | Primary keys | `id UUID` (UUIDv7: time-ordered, index-friendly, non-enumerable). Generated in the app (`@default(uuid(7))`) or by `uuidv7()` on PG 18. |
 | Tenant key | `tenant_id UUID NOT NULL` on every tenant-owned table, plus `UNIQUE (tenant_id, id)` |
-| Human numbers | `QUO-2026-0007`, `ORD-2026-0042`, `RCPT-2026-0101`, from `TenantCounter` with `SELECT … FOR UPDATE` inside the creating transaction. Never derived from `MAX()+1`. |
+| Human numbers | `QUO-2026-0007`, `ORD-2026-0042`, `RCPT-2026-0101`, from `TenantCounter` inside the creating transaction. Never derived from `MAX()+1`. **Implemented (ADR-033):** one atomic `INSERT … ON CONFLICT DO UPDATE SET value = value + 1 RETURNING value` per number, which holds the row lock until commit (equivalent to `SELECT … FOR UPDATE`, in one statement). Per tenant, key and local year. |
 | Timestamps | `timestamptz`, stored UTC. `created_at`, `updated_at` on all tables. Tenant timezone in `TenantSettings.timezone` (default `Asia/Manila`). |
 | Dates without time | `date` (e.g. holiday, promised delivery date), interpreted in the tenant's timezone |
 | Money | `numeric(12,2)` + `currency char(3)` (default `PHP`). Never float. Arithmetic uses `Prisma.Decimal` / decimal.js in `packages/utils/money`. |
@@ -97,6 +97,9 @@
 **Sales**
 - `Quotation`: number, clientId, status (`DRAFT`/`SENT`/`ACCEPTED`/`REJECTED`/`EXPIRED`/`CONVERTED`), validUntil, subtotal, discount, tax, total, revision, `supersedesId?`
 - `QuotationItem`: snapshot of name, description, unitPrice, qty, selected options (jsonb), measurementRecordId?
+
+**Implemented (Phase 4, migration `0014_quotations`, ADR-033):** `TenantCounter`, `Quotation` and `QuotationItem`. Deviations: status `SUPERSEDED` added (a revision keeps the number and bumps `revision`; `UNIQUE(tenant_id, number, revision)` and `UNIQUE(tenant_id, supersedes_id)`); the tax rate and the prices-include-tax flag are copied onto each quotation; `version` for optimistic locking; option snapshots are `[{ groupId, groupName, optionId, optionName, priceDelta }]`. CHECKs: amounts non-negative, discount ≤ subtotal, revision 1 iff no `supersedes_id`, sent statuses have `sent_at` and `valid_until`.
+
 - `Order`: number, clientId, quotationId?, status, promisedDate, subtotal/discount/tax/total, `version`
 - `OrderItem`: snapshot fields (as for QuotationItem), `measurementRecordId` **plus** `measurementSnapshot jsonb` (frozen field labels, values and unit), designReferenceIds
 - `OrderStatusHistory`: from → to, by, at, note

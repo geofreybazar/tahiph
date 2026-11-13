@@ -37,6 +37,7 @@ import { QUEUES } from './queues.js';
       { name: QUEUES.email },
       { name: QUEUES.reminders },
       { name: QUEUES.media },
+      { name: QUEUES.quotations },
     ),
   ],
   exports: [BullModule],

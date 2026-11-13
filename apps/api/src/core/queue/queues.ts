@@ -4,6 +4,7 @@ export const QUEUES = {
   email: 'email',
   reminders: 'reminders',
   media: 'media',
+  quotations: 'quotations',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

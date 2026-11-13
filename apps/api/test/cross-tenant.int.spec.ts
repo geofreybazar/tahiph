@@ -26,6 +26,7 @@ import { MeasurementsModule } from '../src/modules/measurements/measurements.mod
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { UploadsModule } from '../src/modules/uploads/uploads.module.js';
 import { PrivacyModule } from '../src/modules/privacy/privacy.module.js';
+import { QuotationsModule } from '../src/modules/quotations/quotations.module.js';
 import { Browser } from './browser.js';
 import {
   addMember,
@@ -131,6 +132,19 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'LogoController.confirm': () => ({}),
   'LogoController.remove': () => ({}),
   'PrivacyController.export': () => ({}),
+  'QuotationsController.list': () => ({}),
+  'QuotationsController.create': () => ({
+    items: [{ quantity: 1, unitPrice: '1000.00', optionIds: [] }],
+  }),
+  'QuotationsController.get': () => ({}),
+  'QuotationsController.update': () => ({
+    version: 1,
+    items: [{ quantity: 1, unitPrice: '1000.00', optionIds: [] }],
+  }),
+  'QuotationsController.send': () => ({}),
+  'QuotationsController.accept': () => ({}),
+  'QuotationsController.reject': () => ({}),
+  'QuotationsController.revise': () => ({}),
   'PrivacyController.erase': () => ({ reason: 'DATA_SUBJECT_REQUEST' }),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
@@ -149,23 +163,40 @@ interface Side {
   fresh: Record<string, () => Promise<string>>;
 }
 
-type JsonProp = { format?: string; items?: { format?: string } };
+type JsonObject = { properties?: Record<string, JsonProp>; anyOf?: JsonObject[] };
+type JsonProp = { format?: string; items?: { format?: string } & JsonObject };
 
-/** Request fields holding uuids: single ids, or arrays of ids (`array: true`). */
+/**
+ * Request fields holding uuids: single ids, or arrays of ids (`array: true`). Ids inside
+ * arrays of objects are named `items[].catalogItemId` (the request sets them on element 0).
+ */
 function uuidFields(schema: z.ZodType | undefined): { name: string; array: boolean }[] {
   if (!schema) return [];
-  const json = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as {
-    properties?: Record<string, JsonProp>;
-    anyOf?: { properties?: Record<string, JsonProp> }[];
-  };
+  const json = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as JsonObject;
   const found = new Map<string, boolean>();
-  for (const o of [json, ...(json.anyOf ?? [])]) {
-    for (const [name, p] of Object.entries(o.properties ?? {})) {
-      if (p.format === 'uuid') found.set(name, false);
-      else if (p.items?.format === 'uuid') found.set(name, true);
+  const walk = (o: JsonObject, prefix: string) => {
+    for (const branch of [o, ...(o.anyOf ?? [])]) {
+      for (const [name, p] of Object.entries(branch.properties ?? {})) {
+        if (p.format === 'uuid') found.set(prefix + name, false);
+        else if (p.items?.format === 'uuid') found.set(prefix + name, true);
+        else if (p.items?.properties || p.items?.anyOf) walk(p.items, `${prefix}${name}[].`);
+      }
     }
-  }
+  };
+  walk(json, '');
   return [...found].map(([name, array]) => ({ name, array }));
+}
+
+/** Sets a top-level or `list[].field` value on a sample body (element 0 of the list). */
+function setField(body: Record<string, unknown>, field: string, value: unknown) {
+  const [list, child] = field.split('[].');
+  if (child === undefined) {
+    body[field] = value;
+    return;
+  }
+  const items = body[list!] as Record<string, unknown>[] | undefined;
+  if (!items?.[0]) throw new Error(`sample has no ${list}[0] for ${field}`);
+  items[0][child] = value;
 }
 
 const uuidBodyFields = (schema: z.ZodType | undefined) => uuidFields(schema).map((f) => f.name);
@@ -310,8 +341,43 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       const option = await tx.catalogOption.create({
         data: { tenantId: tenant.tenantId, groupId: group.id, name: 'Piña' },
       });
+      // The item offers the group, so a quotation line may pick the option.
+      await tx.catalogItemOptionGroup.create({
+        data: { tenantId: tenant.tenantId, itemId: item.id, groupId: group.id, sortOrder: 0 },
+      });
       return { category, item, group, option };
     });
+    // Fresh per request: state-changing routes (send, accept…) consume it.
+    const quotation = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const q = await tx.quotation.create({
+          data: {
+            tenantId: tenant.tenantId,
+            number: `QUO-T-${suffix()}`,
+            clientId: client.id,
+            validUntil: new Date('2040-01-01'),
+            currency: 'PHP',
+            subtotal: '1000',
+            tax: '0',
+            total: '1000',
+            taxRate: '0',
+            pricesIncludeTax: true,
+            createdByMembershipId: member.id,
+          },
+        });
+        await tx.quotationItem.create({
+          data: {
+            tenantId: tenant.tenantId,
+            quotationId: q.id,
+            sortOrder: 0,
+            name: 'Hemming',
+            unitPrice: '1000',
+            quantity: 1,
+            lineTotal: '1000',
+          },
+        });
+        return q.id;
+      });
     // Fresh per request: the own-id control may delete it.
     const image = (purpose: 'LOGO' | 'CATALOG_ITEM_IMAGE') => () =>
       asTenant(prisma, tenant.tenantId, async (tx) => {
@@ -335,6 +401,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         timeOff,
         catalogImage: image('CATALOG_ITEM_IMAGE'),
         logo: image('LOGO'),
+        quotation,
         // Fresh per request: the own-id control erases it.
         erasableClient: () =>
           asTenant(prisma, tenant.tenantId, async (tx) => {
@@ -370,13 +437,15 @@ describe('Cross-tenant isolation for every route (integration)', () => {
   async function footprint(t: TenantFixture): Promise<Record<string, string>> {
     const hash = (from: string) =>
       `SELECT md5(coalesce(string_agg(r::text, ',' ORDER BY r::text), '')) AS h FROM ${from}`;
+    // One statement for all tables: a query per table made this test the suite's slowest.
+    const all = Object.values(TENANT_MODELS)
+      .map((table) => `'${table}', (${hash(`"${table}" r`)})`)
+      .join(', ');
     const out = await asTenant(prisma, t.tenantId, async (tx) => {
-      const tables: Record<string, string> = {};
-      for (const table of Object.values(TENANT_MODELS)) {
-        const [r] = await tx.$queryRawUnsafe<{ h: string }[]>(hash(`"${table}" r`));
-        tables[table] = r!.h;
-      }
-      return tables;
+      const [r] = await tx.$queryRawUnsafe<{ j: Record<string, string> }[]>(
+        `SELECT json_build_object(${all}) AS j`,
+      );
+      return { ...r!.j };
     });
     const [tokens] = await prisma.$queryRawUnsafe<{ h: string }[]>(
       hash(`(SELECT * FROM auth_token WHERE tenant_id = $1::uuid) r`),
@@ -403,6 +472,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         CatalogModule,
         UploadsModule,
         PrivacyModule,
+        QuotationsModule,
         PlatformModule,
       ],
     })
@@ -480,6 +550,9 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'LogoController.remove',
         'PrivacyController.export',
         'PrivacyController.erase',
+        'QuotationsController.create',
+        'QuotationsController.update',
+        'QuotationsController.accept',
         'OptionGroupsController.updateOption',
         'RolesController.update',
         'AuthController.switchTenant',
@@ -516,7 +589,12 @@ describe('Cross-tenant isolation for every route (integration)', () => {
             const id = who.fresh[k] ? await who.fresh[k]() : who.resources[k];
             if (!id) throw new Error(`no fixture for resource kind ${k}`);
             if (route.pathParams.includes(f)) path = path.replace(`:${f}`, id);
-            else body[f] = uuidFields(route.body).some((x) => x.name === f && x.array) ? [id] : id;
+            else
+              setField(
+                body,
+                f,
+                uuidFields(route.body).some((x) => x.name === f && x.array) ? [id] : id,
+              );
           }
           // GET routes take the sample and the ids as query parameters.
           const query = new URLSearchParams(body as Record<string, string>).toString();
@@ -550,5 +628,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       }
     }
     expect(failures).toEqual([]);
-  });
+    // Grows with every id-bearing route (~100 checks × 4 round trips at Phase 4 step 1), so
+    // it gets its own limit instead of the 30 s default meant for single scenarios.
+  }, 120_000);
 });

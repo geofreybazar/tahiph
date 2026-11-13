@@ -31,6 +31,9 @@ export const TENANT_MODELS = {
   CatalogOption: 'catalog_option',
   CatalogItemOptionGroup: 'catalog_item_option_group',
   MediaAsset: 'media_asset',
+  TenantCounter: 'tenant_counter',
+  Quotation: 'quotation',
+  QuotationItem: 'quotation_item',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

@@ -49,6 +49,7 @@ export type ResourceKind =
   | 'optionGroup'
   | 'catalogOption'
   | 'catalogImage'
+  | 'quotation'
   | 'logo'
   | (string & {});
 

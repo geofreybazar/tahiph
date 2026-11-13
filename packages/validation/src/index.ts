@@ -14,3 +14,4 @@ export * from './appointments.js';
 export * from './catalog.js';
 export * from './uploads.js';
 export * from './privacy.js';
+export * from './quotations.js';

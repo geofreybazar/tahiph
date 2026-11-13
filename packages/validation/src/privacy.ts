@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { appointmentSchema } from './appointments.js';
 import { clientNoteSchema, clientSchema, communicationSchema } from './clients.js';
 import { measurementRecordSchema } from './measurements.js';
+import { quotationSchema } from './quotations.js';
 
 /** Data-subject rights (RA 10173, ADR-032). */
 export const ERASURE_REASONS = ['DATA_SUBJECT_REQUEST', 'TENANT_REQUEST'] as const;
@@ -16,6 +17,7 @@ export const clientExportSchema = z.object({
   communications: z.array(communicationSchema),
   measurements: z.array(measurementRecordSchema),
   appointments: z.array(appointmentSchema),
+  quotations: z.array(quotationSchema),
 });
 
 export type EraseClientRequest = z.infer<typeof eraseClientRequestSchema>;
