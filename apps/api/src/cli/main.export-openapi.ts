@@ -21,6 +21,10 @@ async function main(): Promise<void> {
   process.env.APP_PUBLIC_URL ??= 'https://app.tahi.ph';
   process.env.ENCRYPTION_KEYS ??= `export:${Buffer.alloc(32).toString('base64')}`;
   process.env.LOG_LEVEL ??= 'silent';
+  process.env.S3_ENDPOINT ??= 'http://127.0.0.1:1';
+  process.env.S3_BUCKET ??= 'openapi';
+  process.env.S3_ACCESS_KEY_ID ??= 'openapi';
+  process.env.S3_SECRET_ACCESS_KEY ??= 'openapi';
   const ref = await Test.createTestingModule({ imports: [AppModule] }).compile();
   writeFileSync(
     out,

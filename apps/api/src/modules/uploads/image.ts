@@ -1,5 +1,8 @@
 import sharp from 'sharp';
 
+// One libvips thread per job: the worker shares the VPS with Postgres and the API.
+sharp.concurrency(1);
+
 /** Decompression-bomb guard: 40 MP covers any phone camera. */
 const MAX_INPUT_PIXELS = 40_000_000;
 const FORMAT_TYPES: Record<string, string> = {
