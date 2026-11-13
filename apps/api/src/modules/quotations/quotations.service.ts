@@ -2,7 +2,6 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Prisma, type TenantDatabase } from '@tahi/database';
 import type {
   CreateQuotationRequest,
-  QuotationItemInput,
   QuotationListQuery,
   UpdateQuotationRequest,
 } from '@tahi/validation';
@@ -14,13 +13,14 @@ import { afterCursor, decodeCursor, encodeCursor } from '../../core/http/cursor.
 import { DomainError, NotFoundError, ValidationFailedError } from '../../core/http/domain-error.js';
 import { Paginated } from '../../core/http/envelope.interceptor.js';
 import { CounterService, yearIn } from '../../core/numbering/counter.service.js';
-import { CatalogService } from '../catalog/catalog.service.js';
 import { ClientsService } from '../clients/clients.service.js';
-import { MeasurementsService } from '../measurements/measurements.service.js';
 import { TenantSettingsService } from '../tenants/tenant-settings.service.js';
-import { computeTotals } from './totals.js';
+import {
+  LinePricingService,
+  type BuiltLines,
+  type OptionSnapshot,
+} from './line-pricing.service.js';
 
-const D = Prisma.Decimal;
 type Status = Prisma.QuotationGetPayload<object>['status'];
 
 /** YYYY-MM-DD today in an IANA time zone (en-CA formats dates as ISO). */
@@ -34,14 +34,6 @@ const INCLUDE = {
   items: { orderBy: { sortOrder: 'asc' } },
 } as const satisfies Prisma.QuotationInclude;
 type Row = Prisma.QuotationGetPayload<{ include: typeof INCLUDE }>;
-
-interface OptionSnapshot {
-  groupId: string;
-  groupName: string;
-  optionId: string;
-  optionName: string;
-  priceDelta: string;
-}
 
 function toQuotation(q: Row) {
   const m = (d: Prisma.Decimal) => ({ amount: d.toFixed(2), currency: q.currency });
@@ -104,8 +96,7 @@ export class QuotationsService {
     private readonly counters: CounterService,
     private readonly settings: TenantSettingsService,
     private readonly clients: ClientsService,
-    private readonly catalog: CatalogService,
-    private readonly measurements: MeasurementsService,
+    private readonly pricing: LinePricingService,
   ) {}
 
   private audited(action: string, id: string, ip: string) {
@@ -152,118 +143,7 @@ export class QuotationsService {
     );
   }
 
-  /**
-   * Resolves item inputs against the catalogue and the client's measurements, then prices
-   * everything with the current tax settings. Ids that aren't the atelier's are 404.
-   */
-  private async build(
-    clientId: string,
-    inputs: QuotationItemInput[],
-    discountInput: string | undefined,
-  ) {
-    const s = await this.settings.settings();
-    const items = [];
-    for (const [index, input] of inputs.entries()) {
-      items.push(await this.buildItem(clientId, input, index));
-    }
-    const discount = new D(discountInput ?? '0');
-    const t = computeTotals(
-      items.map((i) => ({
-        unitPrice: i.unitPrice,
-        quantity: i.quantity,
-        priceDeltas: i.options.map((o) => new D(o.priceDelta)),
-      })),
-      discount,
-      new D(s.taxRate),
-      s.pricesIncludeTax,
-    );
-    if (discount.greaterThan(t.subtotal)) {
-      throw new ValidationFailedError([
-        { path: ['discount'], message: 'Must not exceed the subtotal' },
-      ]);
-    }
-    return {
-      currency: s.currency,
-      header: {
-        subtotal: t.subtotal,
-        discount: t.discount,
-        tax: t.tax,
-        total: t.total,
-        taxRate: new D(s.taxRate),
-        pricesIncludeTax: s.pricesIncludeTax,
-      },
-      items: items.map((i, n) => ({ ...i, lineTotal: t.lineTotals[n]! })),
-    };
-  }
-
-  private async buildItem(clientId: string, input: QuotationItemInput, index: number) {
-    const fail = (field: string, message: string) =>
-      new ValidationFailedError([{ path: ['items', index, field], message }]);
-    if (input.measurementRecordId) {
-      const record = await this.measurements.record(input.measurementRecordId);
-      if (record.clientId !== clientId) {
-        throw fail('measurementRecordId', 'These measurements belong to another client.');
-      }
-    }
-    const base = {
-      sortOrder: index,
-      quantity: input.quantity,
-      measurementRecordId: input.measurementRecordId ?? null,
-    };
-    if (!input.catalogItemId) {
-      return {
-        ...base,
-        catalogItemId: null,
-        name: input.name!,
-        description: input.description ?? null,
-        unitPrice: new D(input.unitPrice!),
-        options: [] as OptionSnapshot[],
-      };
-    }
-    const item = await this.catalog.getItem(input.catalogItemId);
-    if (item.archivedAt) throw fail('catalogItemId', 'This catalogue item is archived.');
-    const price = input.unitPrice ?? item.basePrice?.amount;
-    if (price === undefined) {
-      throw fail('unitPrice', 'Quotation-priced items need a unit price.');
-    }
-    const chosen = new Set(input.optionIds);
-    const options: OptionSnapshot[] = [];
-    for (const group of item.optionGroups) {
-      const picked = group.options.filter((o) => chosen.has(o.id));
-      for (const o of picked) {
-        if (o.archivedAt) throw fail('optionIds', `“${o.name}” is archived.`);
-        chosen.delete(o.id);
-        options.push({
-          groupId: group.id,
-          groupName: group.name,
-          optionId: o.id,
-          optionName: o.name,
-          priceDelta: o.priceDelta.amount,
-        });
-      }
-      if (group.selection === 'SINGLE' && picked.length > 1) {
-        throw fail('optionIds', `Choose one option for “${group.name}”.`);
-      }
-      if (group.required && !group.archivedAt && picked.length === 0) {
-        throw fail('optionIds', `“${group.name}” needs a choice.`);
-      }
-    }
-    // Ids not on this item: another atelier's, or not offered for it. Either way, not found.
-    if (chosen.size > 0) throw new NotFoundError('Option not found on this catalogue item.');
-    return {
-      ...base,
-      catalogItemId: item.id,
-      name: input.name ?? item.name,
-      description: input.description !== undefined ? input.description : item.description,
-      unitPrice: new D(price),
-      options,
-    };
-  }
-
-  private async writeItems(
-    quotationId: string,
-    items: Awaited<ReturnType<QuotationsService['build']>>['items'],
-  ) {
+  private async writeItems(quotationId: string, items: BuiltLines['items']) {
     await this.tenantDb.db().quotationItem.createMany({
       data: items.map((i) => ({
         quotationId,
@@ -275,7 +155,7 @@ export class QuotationsService {
 
   async create(input: CreateQuotationRequest, ip: string) {
     const client = await this.clients.get(input.clientId);
-    const built = await this.build(client.id, input.items, input.discount);
+    const built = await this.pricing.build(client.id, input.items, input.discount);
     const { timezone } = await this.settings.settings();
     const id = await this.tenantDb.withTenantTx(async () => {
       const q = await this.tenantDb.db().quotation.create({
@@ -301,7 +181,7 @@ export class QuotationsService {
     const current = await this.find(id);
     if (current.status !== 'DRAFT') throw invalidStatus('edit', current.status);
     await this.clients.get(current.clientId); // an erased client's drafts are frozen (404)
-    const built = await this.build(current.clientId, input.items, input.discount);
+    const built = await this.pricing.build(current.clientId, input.items, input.discount);
     await this.tenantDb.withTenantTx(async () => {
       const { count } = await this.tenantDb.db().quotation.updateMany({
         where: { id, status: 'DRAFT', version: input.version },

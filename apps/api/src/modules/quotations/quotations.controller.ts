@@ -34,7 +34,7 @@ import { QuotationsService } from './quotations.service.js';
 type IdParams = { id: string };
 const idPipe = () => new ZodValidationPipe(quotationParamsSchema);
 /** Ids inside quotation items (the cross-tenant suite sends another atelier's for each). */
-const ITEM_REFS = {
+export const ITEM_REFS = {
   'items[].catalogItemId': 'catalogItem',
   'items[].optionIds': 'catalogOption',
   'items[].measurementRecordId': 'measurementRecord',

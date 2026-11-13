@@ -12,6 +12,7 @@ import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
 import { MeasurementsModule } from './modules/measurements/measurements.module.js';
 import { PrivacyModule } from './modules/privacy/privacy.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
 import { QuotationsModule } from './modules/quotations/quotations.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
 import { UploadsModule } from './modules/uploads/uploads.module.js';
@@ -33,6 +34,7 @@ import { UploadsModule } from './modules/uploads/uploads.module.js';
     CatalogModule,
     UploadsModule,
     QuotationsModule,
+    OrdersModule,
     PrivacyModule,
     PlatformModule,
   ],

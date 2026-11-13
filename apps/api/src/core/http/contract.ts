@@ -50,6 +50,7 @@ export type ResourceKind =
   | 'catalogOption'
   | 'catalogImage'
   | 'quotation'
+  | 'order'
   | 'logo'
   | (string & {});
 

@@ -26,6 +26,7 @@ import { MeasurementsModule } from '../src/modules/measurements/measurements.mod
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { UploadsModule } from '../src/modules/uploads/uploads.module.js';
 import { PrivacyModule } from '../src/modules/privacy/privacy.module.js';
+import { OrdersModule } from '../src/modules/orders/orders.module.js';
 import { QuotationsModule } from '../src/modules/quotations/quotations.module.js';
 import { Browser } from './browser.js';
 import {
@@ -145,6 +146,19 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'QuotationsController.accept': () => ({}),
   'QuotationsController.reject': () => ({}),
   'QuotationsController.revise': () => ({}),
+  'OrdersController.list': () => ({}),
+  'OrdersController.create': () => ({
+    items: [{ quantity: 1, unitPrice: '1000.00', optionIds: [] }],
+  }),
+  // Own id: the fixture quotation is a draft, so 409; foreign: 404.
+  'OrdersController.convert': () => ({}),
+  'OrdersController.get': () => ({}),
+  'OrdersController.update': () => ({
+    version: 1,
+    items: [{ quantity: 1, unitPrice: '1000.00', optionIds: [] }],
+  }),
+  'OrdersController.progress': () => ({ status: 'IN_PRODUCTION' }),
+  'OrdersController.cancel': () => ({ reason: 'Client changed their mind' }),
   'PrivacyController.erase': () => ({ reason: 'DATA_SUBJECT_REQUEST' }),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
@@ -378,6 +392,36 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         });
         return q.id;
       });
+    // Fresh per request: status changes and cancel consume it.
+    const order = () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const o = await tx.order.create({
+          data: {
+            tenantId: tenant.tenantId,
+            number: `ORD-T-${suffix()}`,
+            clientId: client.id,
+            currency: 'PHP',
+            subtotal: '1000',
+            tax: '0',
+            total: '1000',
+            taxRate: '0',
+            pricesIncludeTax: true,
+            createdByMembershipId: member.id,
+          },
+        });
+        await tx.orderItem.create({
+          data: {
+            tenantId: tenant.tenantId,
+            orderId: o.id,
+            sortOrder: 0,
+            name: 'Hemming',
+            unitPrice: '1000',
+            quantity: 1,
+            lineTotal: '1000',
+          },
+        });
+        return o.id;
+      });
     // Fresh per request: the own-id control may delete it.
     const image = (purpose: 'LOGO' | 'CATALOG_ITEM_IMAGE') => () =>
       asTenant(prisma, tenant.tenantId, async (tx) => {
@@ -402,6 +446,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         catalogImage: image('CATALOG_ITEM_IMAGE'),
         logo: image('LOGO'),
         quotation,
+        order,
         // Fresh per request: the own-id control erases it.
         erasableClient: () =>
           asTenant(prisma, tenant.tenantId, async (tx) => {
@@ -473,6 +518,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         UploadsModule,
         PrivacyModule,
         QuotationsModule,
+        OrdersModule,
         PlatformModule,
       ],
     })
@@ -553,6 +599,9 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'QuotationsController.create',
         'QuotationsController.update',
         'QuotationsController.accept',
+        'OrdersController.convert',
+        'OrdersController.update',
+        'OrdersController.cancel',
         'OptionGroupsController.updateOption',
         'RolesController.update',
         'AuthController.switchTenant',

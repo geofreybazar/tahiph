@@ -97,7 +97,7 @@ API only (the dashboard screens are Phase 4b). Scope and step order approved by 
 
 **Steps** (one branch each, in order):
 - [x] `feat/quotations` (merged 2026-11-13, ADR-033): `TenantCounter` numbers (`QUO-2026-0007`); quotations with items snapshotting catalogue name, price and options plus a measurement-record reference; server-computed discount and tax; revisions (approved quotations are read-only); DRAFT → SENT → ACCEPTED/REJECTED/EXPIRED; expiry job; optimistic locking.
-- [ ] `feat/orders`: quotation → order conversion (one transaction, row lock, `UNIQUE(quotation_id)` makes it idempotent); direct orders for walk-in sales; items with price and measurement snapshots; statuses, promised date, timeline.
+- [ ] `feat/orders` (in review, ADR-034): quotation → order conversion (one transaction, row lock, `UNIQUE(quotation_id)` makes it idempotent); direct orders for walk-in sales; items with price and measurement snapshots; statuses, promised date, timeline.
 - [ ] `feat/production`: per-atelier configurable stages (default set seeded); one job per order item; assignments (`production.read_assigned`); stage history.
 - [ ] `feat/fittings-alterations`: fittings (optionally linked to an appointment), alteration loops, QC, release.
 - [ ] `feat/payments`: manual payments (cash, GCash, Maya, bank transfer) with reference and optional proof image (uploads pipeline, private purpose); acknowledgment receipt numbers (`RCPT-…`); computed balance; manual refunds under row lock (≤ the payment, `payments.refund`).

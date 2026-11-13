@@ -385,6 +385,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Backups:** erased data remains in backups until they expire (about 6 months). Each erasure also logs `event: client.erased` with ids only, so a restore of an older dump can replay erasures (`BACKUP_AND_RECOVERY.md` §5). Those log lines only help once logs are shipped off the server (Phase 8).
 - **Phase 4 rule:** orders and payments keep referencing the anonymized client id. Name and amount snapshots on receipts fall under BIR retention and are not erased; measurement snapshots on order items should be cleared by erasure. Design Phase 4 tables with this in mind.
 **Update (2026-11-13, ADR-033):** quotations join erasure: it is refused while the client has `SENT` quotations; otherwise their notes and item measurement links are cleared (before measurements are deleted) and prices stay. Drafts of an erased client stay but are frozen (the client is not found). The export includes quotations.
+**Update (2026-11-13, ADR-034):** orders join erasure: refused while the client has open orders (`CONFIRMED`, `IN_PRODUCTION`, `READY`); otherwise order notes, measurement links and measurement snapshots are cleared, a cancel reason becomes "Erased", and prices and lines stay. The export includes orders.
 **Consequences:** JSON export only (PDF later; it needs a dependency). Not covered yet: storefront `CustomerAccount` (not linked to clients until Phase 5) and client uploads (none exist yet). No consent capture yet (storefront, Phase 5).
 
 ## ADR-033 — Quotations: snapshots, server-side totals, revisions and numbering
@@ -399,3 +400,16 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Permissions:** `quotations.read` / `quotations.write`. `quotations.approve` stays unused until discount-approval thresholds are needed.
 - **Cross-tenant suite:** it now discovers uuid fields inside arrays of objects (`items[].catalogItemId`) and sets them on the sample's first element. Its main test hashes every tenant table in one statement and has its own 120 s limit, since it grows with every id-bearing route.
 **Consequences:** No emails yet (step 6) and no customer accept link (Phase 5). No PDF. Orders (step 2) will lock an `ACCEPTED` quotation, copy its snapshots and set it `CONVERTED`.
+
+## ADR-034 — Orders: idempotent conversion, measurement snapshots, forward-only status
+**Status:** Accepted (2026-11-13, product owner approved Phase 4 step 2 and its three recommendations)
+**Context:** Accepted quotations become orders; walk-in sales need orders without a quotation. Business rule 2: order items keep a measurement reference **and** a frozen snapshot.
+**Decision:**
+- **Tables** `sales_order`, `sales_order_item`, `sales_order_status_history` (models `Order`, `OrderItem`, `OrderStatusHistory`); `ORD-{year}-{0001}` numbers from `TenantCounter`.
+- **Conversion** (`POST /tenant/orders/from-quotation`) runs in one transaction: `SELECT … FOR UPDATE` on the quotation, return its order if it already has one, require `ACCEPTED`, copy totals and lines exactly as quoted, freeze measurement snapshots, set the quotation `CONVERTED`. A concurrent repeat waits on the lock and gets the same order (tested with parallel requests); `UNIQUE(quotation_id)` backs it up.
+- **Direct orders** (`POST /tenant/orders`) price their lines with the quotation rules: `LinePricingService` was extracted from `QuotationsService` and is shared, so both use the same catalogue, option, measurement and tax logic.
+- **Snapshots:** each line with measurements stores `{ recordId, category, unit, takenAt, measuredFor, values }` at creation (or line replacement). Newer revisions don't change it.
+- **Statuses:** `CONFIRMED` → `IN_PRODUCTION` → `READY` → `RELEASED`, forward only; steps may be skipped (a ready-to-wear sale goes straight to `RELEASED`). `CANCELLED` before release, with a required reason and `orders.cancel`; refunds stay manual (step 5). Each change appends to the status history (append-only trigger, no free text).
+- **Edits:** promised date and notes at any open status; lines (with discount) only while `CONFIRMED`, replaced as a whole with repricing. `version` gives optimistic locking (409 `VERSION_CONFLICT`). The accepted quotation stays the record of what was quoted.
+- **Erased clients:** their quotations can't be converted and their orders can't be edited (the client is not found).
+**Consequences:** Production (step 3) will move orders to `IN_PRODUCTION`/`READY`; staff do it by hand until then. Balances and payments are step 5, emails step 6. No design references yet.

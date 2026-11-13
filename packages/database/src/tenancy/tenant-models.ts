@@ -34,6 +34,9 @@ export const TENANT_MODELS = {
   TenantCounter: 'tenant_counter',
   Quotation: 'quotation',
   QuotationItem: 'quotation_item',
+  Order: 'sales_order',
+  OrderItem: 'sales_order_item',
+  OrderStatusHistory: 'sales_order_status_history',
 } as const;
 
 export type TenantModel = keyof typeof TENANT_MODELS;

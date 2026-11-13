@@ -104,6 +104,8 @@
 - `OrderItem`: snapshot fields (as for QuotationItem), `measurementRecordId` **plus** `measurementSnapshot jsonb` (frozen field labels, values and unit), designReferenceIds
 - `OrderStatusHistory`: from → to, by, at, note
 
+**Implemented (Phase 4, migration `0015_orders`, ADR-034):** `Order`, `OrderItem` and `OrderStatusHistory`, in tables `sales_order`, `sales_order_item` and `sales_order_status_history` (`ORDER` is an SQL keyword, as `OPTION` was for the catalogue). Statuses `CONFIRMED` → `IN_PRODUCTION` → `READY` → `RELEASED`, or `CANCELLED` (with a required `cancel_reason`, CHECK). `UNIQUE(tenant_id, quotation_id)` makes conversion idempotent. The measurement snapshot is `{ recordId, category, unit, takenAt, measuredFor, values: [{ key, label, section, value }] }`. The history has no note column (nothing to erase) and is append-only by trigger. `designReferenceIds` waits for design references.
+
 **Production**
 - `ProductionWorkflow`: tenant may have several (e.g. "Bridal", "Alteration only"). One is the default.
 - `ProductionStage`: workflowId, name, sortOrder, kind (`NORMAL`/`FITTING`/`QC`/`TERMINAL`)
@@ -170,7 +172,7 @@ A single transaction:
 | all tenant tables | `(tenant_id, id)` unique; `(tenant_id, created_at desc)` where listed |
 | client | `(tenant_id, last_name, first_name)`; trigram GIN on name/email/phone for search; partial unique `(tenant_id, email) WHERE archived_at IS NULL` |
 | appointment | gist exclusion (above); `(tenant_id, starts_at)`; `(tenant_id, client_id, starts_at desc)` |
-| order | `(tenant_id, status, promised_date)`; `(tenant_id, client_id, created_at desc)`; unique `(tenant_id, number)` |
+| order (`sales_order`) | `(tenant_id, status, promised_date)`; `(tenant_id, client_id, created_at desc)`; unique `(tenant_id, number)` |
 | order_payment | `(tenant_id, order_id)`; `(tenant_id, received_at)` for reports |
 | production_job | `(tenant_id, current_stage_id)`; `(tenant_id, due_date)` |
 | measurement_record | `(tenant_id, client_id, taken_at desc)` |
