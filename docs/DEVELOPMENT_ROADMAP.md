@@ -1,6 +1,6 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 complete (approved 2026-11-13). Phase 4 is planned, not started; so are later phases.
+> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 complete (approved 2026-11-13). Phase 4 scope and step order approved 2026-11-13, not started. Later phases are planned, not started.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |
@@ -9,7 +9,8 @@
 | 1 | Project foundation | **Complete** |
 | 2 | Authentication & multi-tenancy | **Complete** |
 | 3 | Tenant business management | **Complete** |
-| 4 | Sales & operations | Not started |
+| 4 | Sales & operations | Not started (scope approved) |
+| 4b | Dashboard UI | Not started |
 | 5 | Personalized storefront | Not started |
 | 6 | Financial & subscription management | Not started |
 | 7 | Platform administration | Not started |
@@ -92,9 +93,30 @@ Business profile and settings (hours, holidays, timezone, tax); staff management
 **Carried forward (not Phase 3 scope):** a real-R2 upload test (`DEPLOYMENT.md` §7); client data export and erasure is built (above) but needs legal review; upload follow-ups listed in ADR-031.
 
 ## Phase 4 — Sales & operations
-Quotations (revisions, send link, accept/reject, expiry job); quotation → order conversion (transactional, idempotent); orders with snapshots and timeline; production workflows/stages/jobs/assignments; fittings and alterations; **manual payment recording** with acknowledgment receipts; balances; refunds (manual); email notifications; business dashboard KPIs.
+API only (the dashboard screens are Phase 4b). Scope and step order approved by the product owner on 2026-11-13.
 
-**Exit criteria:** an end-to-end Playwright journey (inquiry → quotation → order → production → payment → release) passes.
+**Steps** (one branch each, in order):
+- [ ] `feat/quotations`: `TenantCounter` numbers (`QUO-2026-0007`); quotations with items snapshotting catalogue name, price and options plus a measurement-record reference; server-computed discount and tax; revisions (approved quotations are read-only); DRAFT → SENT → ACCEPTED/REJECTED/EXPIRED; expiry job; optimistic locking.
+- [ ] `feat/orders`: quotation → order conversion (one transaction, row lock, `UNIQUE(quotation_id)` makes it idempotent); direct orders for walk-in sales; items with price and measurement snapshots; statuses, promised date, timeline.
+- [ ] `feat/production`: per-atelier configurable stages (default set seeded); one job per order item; assignments (`production.read_assigned`); stage history.
+- [ ] `feat/fittings-alterations`: fittings (optionally linked to an appointment), alteration loops, QC, release.
+- [ ] `feat/payments`: manual payments (cash, GCash, Maya, bank transfer) with reference and optional proof image (uploads pipeline, private purpose); acknowledgment receipt numbers (`RCPT-…`); computed balance; manual refunds under row lock (≤ the payment, `payments.refund`).
+- [ ] `feat/notifications-kpis`: emails via `MAILER` (quotation sent, order confirmed, ready for pickup, payment received); dashboard KPI endpoint; the end-to-end journey test.
+
+**Decisions (2026-11-13):**
+- Customers' accept/reject is recorded by staff in Phase 4; the emailed accept link needs a storefront page and moves to Phase 5.
+- New per-atelier setting "prices include tax", default on (Philippine prices are usually quoted VAT-inclusive; non-VAT ateliers use 0%).
+- One production job per order item.
+- Payment kind is recorded (down payment, partial, installment, final); installment schedules are later.
+- Receipts are acknowledgment receipts as structured data plus an emailed HTML version, labelled "Acknowledgment Receipt — not an official receipt or BIR sales invoice". PDF later (needs a dependency). The label needs legal review (R3).
+- Data-subject erasure (ADR-032) carries over: orders and payments keep referencing the anonymized client, receipts keep their snapshots (BIR retention), erasure clears measurement snapshots on order items and is refused while the client has open orders.
+
+**Exit criteria:** an end-to-end journey (inquiry → quotation → order → production → payment → release) passes as an HTTP-level integration test against the API. (The browser journey with Playwright is Phase 4b's exit criterion.)
+
+## Phase 4b — Dashboard UI
+The atelier dashboard's screens (`apps/dashboard`) over the Phase 2–4 API: sign-in and onboarding, atelier switcher, settings and staff, clients and measurements, appointments, catalogue and uploads, quotations, orders, production, payments. Added on 2026-11-13: until then only the API had been built, and no phase planned the screens. Scope, steps and UI dependencies (Playwright among them) to be proposed before it starts.
+
+**Exit criteria:** an end-to-end Playwright journey (inquiry → quotation → order → production → payment → release) passes in the browser.
 
 ## Phase 5 — Personalized storefront
 Host-based tenant resolution; theming; sections; portfolio, collections, testimonials; services; inquiry and quotation request forms (Turnstile); public appointment booking; customer order tracking; SEO (metadata, sitemap, OG, JSON-LD); ISR + revalidation; custom-domain foundation (TenantDomain verification, Cloudflare for SaaS integration behind a feature flag).

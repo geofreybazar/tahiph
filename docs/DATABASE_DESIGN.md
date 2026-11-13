@@ -196,5 +196,5 @@ Every monetary column has a sibling `currency`. Orders and quotations are single
 1. ~~Q1: appointment resource model~~: per staff member (answered 2026-11-11)
 2. ~~Q2: measurement units and precision~~: per-tenant unit, `numeric(7,3)` (answered 2026-11-11)
 3. Whether `CustomerAccount` is required for booking, or guest booking with email verification is allowed (recommendation: guest booking allowed; account optional)
-4. Installment plans in MVP or later
-5. Production: one `ProductionJob` per order item (recommended) vs per order
+4. ~~Installment plans in MVP or later~~: later; Phase 4 records the payment kind only (decided 2026-11-13)
+5. ~~Production: one `ProductionJob` per order item (recommended) vs per order~~: per order item (decided 2026-11-13)

@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS for fashion designers and bespoke ateliers (Philippines). Monorepo: Turborepo + npm workspaces.
 
-**Current phase:** Phase 3 complete (approved 2026-11-13). Phase 4 not started; its scope and steps need product-owner approval first (`docs/DEVELOPMENT_ROADMAP.md`). Each step is its own branch, merged only with product-owner approval.
+**Current phase:** Phase 4 (sales & operations, API only), scope and step order approved 2026-11-13; steps and status in `docs/DEVELOPMENT_ROADMAP.md`. Phase 4b adds the dashboard screens. Each step is its own branch, merged only with product-owner approval.
 
 ## Source of truth
 Read `docs/` before working on any area. Key docs:
