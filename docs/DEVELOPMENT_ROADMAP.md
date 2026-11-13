@@ -105,7 +105,7 @@ API only (the dashboard screens are Phase 4b). Scope and step order approved by 
 
 **Decisions (2026-11-13):**
 - Customers' accept/reject is recorded by staff in Phase 4; the emailed accept link needs a storefront page and moves to Phase 5.
-- New per-atelier setting "prices include tax", default on (Philippine prices are usually quoted VAT-inclusive; non-VAT ateliers use 0%).
+- Totals honour the existing settings `pricesIncludeTax` (default on: Philippine prices are usually quoted VAT-inclusive) and `taxRate` (0% for non-VAT ateliers) from ADR-024.
 - One production job per order item.
 - Payment kind is recorded (down payment, partial, installment, final); installment schedules are later.
 - Receipts are acknowledgment receipts as structured data plus an emailed HTML version, labelled "Acknowledgment Receipt — not an official receipt or BIR sales invoice". PDF later (needs a dependency). The label needs legal review (R3).
