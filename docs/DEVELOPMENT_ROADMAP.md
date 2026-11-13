@@ -96,7 +96,7 @@ Business profile and settings (hours, holidays, timezone, tax); staff management
 API only (the dashboard screens are Phase 4b). Scope and step order approved by the product owner on 2026-11-13.
 
 **Steps** (one branch each, in order):
-- [ ] `feat/quotations` (in review, ADR-033): `TenantCounter` numbers (`QUO-2026-0007`); quotations with items snapshotting catalogue name, price and options plus a measurement-record reference; server-computed discount and tax; revisions (approved quotations are read-only); DRAFT → SENT → ACCEPTED/REJECTED/EXPIRED; expiry job; optimistic locking.
+- [x] `feat/quotations` (merged 2026-11-13, ADR-033): `TenantCounter` numbers (`QUO-2026-0007`); quotations with items snapshotting catalogue name, price and options plus a measurement-record reference; server-computed discount and tax; revisions (approved quotations are read-only); DRAFT → SENT → ACCEPTED/REJECTED/EXPIRED; expiry job; optimistic locking.
 - [ ] `feat/orders`: quotation → order conversion (one transaction, row lock, `UNIQUE(quotation_id)` makes it idempotent); direct orders for walk-in sales; items with price and measurement snapshots; statuses, promised date, timeline.
 - [ ] `feat/production`: per-atelier configurable stages (default set seeded); one job per order item; assignments (`production.read_assigned`); stage history.
 - [ ] `feat/fittings-alterations`: fittings (optionally linked to an appointment), alteration loops, QC, release.
