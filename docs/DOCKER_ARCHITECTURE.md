@@ -1,7 +1,6 @@
 # Docker Architecture — TAHI.ph
 
-> **Status:** Phase 1 implemented: `infrastructure/docker/*.Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml` and `infrastructure/traefik/`. **Not yet run locally** (no Docker in WSL). Images are built and smoke-tested in CI. The backup container is Phase 8.
-> **Local note:** the Docker CLI is not currently available in the development WSL environment. Enable Docker Desktop WSL integration or install Docker Engine before Phase 1.
+> **Status:** Phase 1 implemented: `infrastructure/docker/*.Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml` and `infrastructure/traefik/`. The dev stack (`docker-compose.yml`) runs locally since 2026-11-13; the production stack has not been run locally. Images are built and smoke-tested in CI. The backup container is Phase 8.
 
 ## 1. Services
 

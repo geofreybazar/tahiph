@@ -1,14 +1,14 @@
 # Development Roadmap — TAHI.ph
 
-> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 in progress: scope and step order approved 2026-11-11 (see Phase 3 progress). Later phases are planned, not started.
+> **Status:** Phases 0–2 complete (approved 2026-11-11). Phase 3 complete (approved 2026-11-13). Phase 4 is planned, not started; so are later phases.
 > Each phase ends with: tests green, docs updated, an implementation report, and product-owner approval to merge.
 
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Product discovery & architecture | **Complete** |
-| 1 | Project foundation | **Complete** (local Docker check outstanding, see below) |
+| 1 | Project foundation | **Complete** |
 | 2 | Authentication & multi-tenancy | **Complete** |
-| 3 | Tenant business management | **In progress** |
+| 3 | Tenant business management | **Complete** |
 | 4 | Sales & operations | Not started |
 | 5 | Personalized storefront | Not started |
 | 6 | Financial & subscription management | Not started |
@@ -35,10 +35,10 @@ Work items:
 
 **Exit criteria:**
 - [x] `npm ci && turbo lint typecheck test build` passes (verified locally, 2026-11-11).
-- [ ] `docker compose up` brings up all services healthy locally. **Not verified:** Docker is not installed in the development WSL environment.
+- [x] `docker compose up` brings up all services healthy locally. Verified 2026-11-13 after Docker Desktop WSL integration was enabled (postgres, redis, mailpit; rustfs since ADR-031). The production stack has not been run locally.
 - [x] CI is green, including the Docker image build and smoke jobs, which stand in for the local Docker check (run 42968791459, 2026-11-11).
 
-Approved by the product owner on 2026-11-11 with the local Docker check still open (tracked as R16). CI's image build and smoke jobs cover it in the meantime.
+Approved by the product owner on 2026-11-11 with the local Docker check still open (R16); that check passed on 2026-11-13.
 
 **Implementation notes:** see ADR-014 to ADR-017 for version pins and deviations (ESM backend, TypeScript 6, ESLint 9, OpenAPI deferred to Phase 2, local S3 deferred to Phase 3).
 
@@ -87,7 +87,9 @@ Work items:
 
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
 
-**Exit criteria:** the double-booking concurrency test passes (parallel inserts → exactly one succeeds); measurement revisions are immutable; uploads are validated.
+**Exit criteria:** the double-booking concurrency test passes (parallel inserts → exactly one succeeds); measurement revisions are immutable; uploads are validated. All three met; CI green on `main` (run 43384877509, 2026-11-13). Phase 3 approved by the product owner on 2026-11-13.
+
+**Carried forward (not Phase 3 scope):** a real-R2 upload test (`DEPLOYMENT.md` §7); client data export and erasure (proposed above, not approved); upload follow-ups listed in ADR-031.
 
 ## Phase 4 — Sales & operations
 Quotations (revisions, send link, accept/reject, expiry job); quotation → order conversion (transactional, idempotent); orders with snapshots and timeline; production workflows/stages/jobs/assignments; fittings and alterations; **manual payment recording** with acknowledgment receipts; balances; refunds (manual); email notifications; business dashboard KPIs.
