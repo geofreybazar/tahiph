@@ -42,6 +42,9 @@ describe('permission catalogue', () => {
     expect(role('tailor').has('production.read_assigned')).toBe(true);
     expect(role('tailor').has('payments.read')).toBe(false);
     expect(role('staff').has('reports.financial')).toBe(false);
+    for (const key of ['admin', 'designer', 'tailor', 'staff']) {
+      expect(role(key).has('clients.privacy')).toBe(false);
+    }
   });
 
   it('only super admins manage platform admins', () => {

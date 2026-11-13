@@ -317,6 +317,7 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Permissions:** categories and templates need `tenant.settings`; records need `measurements.read`/`measurements.write`. No new permission was added.
 - `MeasurementsModule` uses `ClientsService` and `TenantSettingsService` (exported) instead of reading their tables.
 **Consequences:** Unit conversion and storefront viewing are not built. Order items will snapshot records in Phase 4.
+**Update (2026-11-13):** ADR-032 adds one narrow exception: data-subject erasure deletes a client's measurements through `erase_client_measurements()`. Updates stay forbidden, and so does every other deletion.
 
 ## ADR-028 — Appointments: per-staff booking with an exclusion constraint
 **Status:** Accepted (2026-11-11, product owner approved step 6a and both recommendations)
@@ -370,3 +371,17 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **One logo per atelier:** when a logo becomes `READY`, the worker deletes every older logo (rows and objects).
 - Measured on RustFS 1.0.4: it enforces the signed length but **not** the signed content type, which confirm's type check covers.
 **Consequences:** The API needs `S3_*` env (validated at boot) and reaches R2 over the edge network. Not done yet: client attachments, measurement photos, payment proofs and PDFs; per-plan storage quotas; a cap on images per item; alt text and focal point; public CDN delivery for the storefront (Phase 5); a sweep for `PENDING` rows that are never confirmed (their objects expire, the rows remain); and orphan objects if a delete's storage call fails after the row is gone.
+
+## ADR-032 — Client data export and erasure (RA 10173)
+**Status:** Accepted (2026-11-13, product owner approved the proposal and all four recommendations). Legal counsel must review the anonymize/delete choices and their interaction with BIR retention before launch.
+**Context:** Each atelier is the personal information controller for its clients; TAHI is the processor (`PRODUCT_REQUIREMENTS.md`). `SECURITY.md` §4 requires per-client export and erasure. Measurements are immutable by trigger (ADR-027).
+**Decision:**
+- **Routes** (`PrivacyModule`): `GET /tenant/clients/:id/export` returns one JSON document (profile, every note, communication, measurement revision and appointment), audited `client.exported`. `POST /tenant/clients/:id/erase` with `{ reason: DATA_SUBJECT_REQUEST | TENANT_REQUEST }` is irreversible, runs in one tenant transaction and is audited `client.erased` (reason in metadata). Each owning module exports and erases its own tables; `PrivacyService` only orchestrates.
+- **Permission `clients.privacy`**: the Owner's by default (existing Owner roles get it in migration `0013`), not in any other system role, but grantable to custom roles.
+- **What erasure does:** the `client` row is kept as a pseudonymous reference (name "Erased client", every other personal field cleared, `archived_at` and new `erased_at` set). Notes and communications are deleted. Measurements are deleted. Appointments are kept as the staff calendar's history, with `notes` and `cancel_reason` cleared. Audit rows hold ids only and stay.
+- **Erased clients are not found (404)** on every client path, so measurements and appointments, which check the client through `ClientsService`, refuse new writes without changes of their own. (The proposal said 409; one filter in `ClientsService.find` is simpler and covers more.)
+- **Refused (409 `CLIENT_HAS_UPCOMING_APPOINTMENTS`)** while the client has `PENDING`/`CONFIRMED` appointments that haven't ended; the atelier cancels them first. A refusal changes nothing.
+- **Measurement deletion:** `erase_client_measurements(client)` is `SECURITY DEFINER` (runs as the table owner), needs a tenant context, and RLS still applies. The measurement triggers allow a `DELETE` only when the current user is the table owner **and** the row belongs to the client that the function has marked as being erased. The app role can set the marker but is never the owner, so it still cannot update or delete measurements (integration-tested). Revisions reference older ones with `ON DELETE RESTRICT`, so newest go first; the function fails if any record is left.
+- **Backups:** erased data remains in backups until they expire (about 6 months). Each erasure also logs `event: client.erased` with ids only, so a restore of an older dump can replay erasures (`BACKUP_AND_RECOVERY.md` §5). Those log lines only help once logs are shipped off the server (Phase 8).
+- **Phase 4 rule:** orders and payments keep referencing the anonymized client id. Name and amount snapshots on receipts fall under BIR retention and are not erased; measurement snapshots on order items should be cleared by erasure. Design Phase 4 tables with this in mind.
+**Consequences:** JSON export only (PDF later; it needs a dependency). Not covered yet: storefront `CustomerAccount` (not linked to clients until Phase 5) and client uploads (none exist yet). No consent capture yet (storefront, Phase 5).

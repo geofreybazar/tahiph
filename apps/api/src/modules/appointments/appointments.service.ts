@@ -281,6 +281,37 @@ export class AppointmentsService {
     return toAppointment(await this.find(id));
   }
 
+  // ----- Data-subject rights (ADR-032); called by PrivacyService inside its transaction ---
+
+  async exportForClient(clientId: string) {
+    const rows = await this.tenantDb.db().appointment.findMany({
+      where: { clientId },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      include: APPOINTMENT_INCLUDE,
+    });
+    return rows.map(toAppointment);
+  }
+
+  /**
+   * Clears free text on the client's appointments; the rows stay as the staff calendar's
+   * history. Refuses while the client has upcoming bookings: the atelier cancels them first.
+   */
+  async eraseForClient(clientId: string): Promise<void> {
+    const upcoming = await this.tenantDb.db().appointment.count({
+      where: { clientId, status: { in: ['PENDING', 'CONFIRMED'] }, endsAt: { gt: new Date() } },
+    });
+    if (upcoming > 0) {
+      throw new DomainError(
+        'CLIENT_HAS_UPCOMING_APPOINTMENTS',
+        'Cancel this client’s upcoming appointments before erasing their data.',
+        HttpStatus.CONFLICT,
+      );
+    }
+    await this.tenantDb
+      .db()
+      .appointment.updateMany({ where: { clientId }, data: { notes: null, cancelReason: null } });
+  }
+
   async slots(query: SlotQuery) {
     const type = await this.findType(query.typeId);
     if (type.archivedAt) throw typeArchived();

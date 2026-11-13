@@ -68,7 +68,7 @@ Rotation runbook for each: DB passwords, `SESSION_PEPPER`/`ENCRYPTION_KEY` (vers
 
 - Data minimization: only collect what ateliers need. Birthdate and photos are optional.
 - Privacy notice and consent checkbox on storefront forms, recorded with timestamp and policy version.
-- Data subject rights: export (JSON/PDF per client) and erasure (anonymization respecting financial retention). See `DATABASE_DESIGN.md` §5.
+- Data subject rights: export (JSON/PDF per client) and erasure (anonymization respecting financial retention). See `DATABASE_DESIGN.md` §5. **Implemented (ADR-032):** JSON export and erasure for CRM clients, permission `clients.privacy`. PDF export and storefront accounts are not implemented yet.
 - Breach response: detection, containment, NPC notification within 72 h where required, tenant notification. The runbook will be maintained in `docs/` (Phase 8).
 - Data Processing Agreement included in the tenant Terms of Service. Appoint a DPO and register with the NPC if thresholds apply. Legal counsel is required.
 

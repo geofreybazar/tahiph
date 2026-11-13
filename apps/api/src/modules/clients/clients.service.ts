@@ -60,6 +60,7 @@ export class ClientsService {
   /** Newest first, keyset-paginated. Search is a case-insensitive substring match. */
   async list(query: ClientListQuery) {
     const where: Prisma.ClientWhereInput = {
+      erasedAt: null,
       ...(query.status === 'active' ? { archivedAt: null } : {}),
       ...(query.status === 'archived' ? { archivedAt: { not: null } } : {}),
       ...(query.tag ? { tags: { has: query.tag } } : {}),
@@ -210,9 +211,67 @@ export class ClientsService {
     });
   }
 
+  // ----- Data-subject rights (ADR-032); called by PrivacyService inside its transaction ---
+
+  /** The client with every note and communication (no page limit). */
+  async exportData(id: string) {
+    const client = toClient(await this.find(id));
+    const notes = await this.tenantDb.db().clientNote.findMany({
+      where: { clientId: id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, body: true, createdAt: true, author: AUTHOR },
+    });
+    const communications = await this.tenantDb.db().communication.findMany({
+      where: { clientId: id },
+      orderBy: { occurredAt: 'asc' },
+      include: { recordedBy: AUTHOR },
+    });
+    return {
+      client,
+      notes: notes.map((n) => ({
+        id: n.id,
+        body: n.body,
+        author: toAuthor(n.author),
+        createdAt: n.createdAt.toISOString(),
+      })),
+      communications: communications.map(toCommunication),
+    };
+  }
+
+  /**
+   * Deletes notes and communications and clears every personal field. The row stays as a
+   * pseudonymous reference for records that must be kept (orders and payments, Phase 4).
+   */
+  async eraseData(id: string): Promise<void> {
+    await this.find(id);
+    const db = this.tenantDb.db();
+    await db.clientNote.deleteMany({ where: { clientId: id } });
+    await db.communication.deleteMany({ where: { clientId: id } });
+    const now = new Date();
+    await db.client.update({
+      where: { id },
+      data: {
+        firstName: 'Erased client',
+        lastName: null,
+        email: null,
+        phone: null,
+        birthday: null,
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        province: null,
+        postalCode: null,
+        preferences: null,
+        tags: [],
+        archivedAt: now,
+        erasedAt: now,
+      },
+    });
+  }
+
   private async find(id: string): Promise<ClientRow> {
-    // Scoped: another atelier's client is not found (404).
-    const c = await this.tenantDb.db().client.findFirst({ where: { id } });
+    // Scoped: another atelier's client is not found (404), nor is an erased one (ADR-032).
+    const c = await this.tenantDb.db().client.findFirst({ where: { id, erasedAt: null } });
     if (!c) throw new NotFoundError('Client not found.');
     return c;
   }

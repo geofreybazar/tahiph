@@ -51,6 +51,7 @@ All backups are **encrypted client-side** (age or the tool's built-in encryption
    - **PITR:** `pgbackrest restore --type=time --target="<timestamp>"`;
    - **or logical:** `pg_restore -d tahi --role=tahi_owner latest.dump`.
 5. Verify roles, RLS policies and the migration table (`_prisma_migrations`) match the release SHA.
+   - **Re-apply data-subject erasures (ADR-032)** made after the restore point. PITR replays them up to the target time. After a logical restore of an older dump, the audit rows are lost too: take the `client.erased` events from the old database if it is readable, otherwise from the API logs (`event: client.erased`, ids only), and erase each client again before reopening.
 6. Deploy the matching release: `deploy.sh <sha>`.
 7. Update the Cloudflare DNS A records if the IP changed.
 8. Smoke test, then announce.
@@ -60,7 +61,7 @@ For accidental deletion by one tenant:
 1. Restore into a side database.
 2. Extract the tenant's rows by `tenant_id`.
 3. Review.
-4. Re-insert via a scripted, audited procedure.
+4. Re-insert via a scripted, audited procedure. Skip every client whose production row has `erased_at` set: never restore an erased client's data (ADR-032).
 
 Never restore the full DB over production for a single tenant.
 

@@ -8,5 +8,6 @@ import { MeasurementsService } from './measurements.service.js';
   imports: [ClientsModule, TenantsModule],
   controllers: [GarmentCategoriesController, MeasurementsController],
   providers: [MeasurementsService],
+  exports: [MeasurementsService],
 })
 export class MeasurementsModule {}

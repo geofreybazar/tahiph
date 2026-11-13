@@ -541,6 +541,9 @@ model Client {
   /// Lower-case, deduplicated by the API.
   tags         String[]     @default([])
   archivedAt   DateTime?    @map("archived_at") @db.Timestamptz(3)
+  /// Set by a data-subject erasure (ADR-032): PII cleared, row kept as a pseudonymous
+  /// reference. Erased clients are not found by the API.
+  erasedAt     DateTime?    @map("erased_at") @db.Timestamptz(3)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 

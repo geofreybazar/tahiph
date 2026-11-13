@@ -184,7 +184,7 @@ A single transaction:
 | Measurement records | Never updated; new revisions only |
 | Sessions, auth tokens | Purged 30 days after expiry |
 | Webhook payloads | Retained 1 year, then payload nulled (keep id/status) |
-| Data-subject erasure request (DPA) | Anonymize client PII (name, contact, photos) while keeping financial rows with a pseudonymous reference. The legal retention period for financial records (BIR: 5–10 years) overrides erasure for those fields. Legal review is required. |
+| Data-subject erasure request (DPA) | Anonymize client PII (name, contact, photos) while keeping financial rows with a pseudonymous reference. The legal retention period for financial records (BIR: 5–10 years) overrides erasure for those fields. Legal review is required. **Implemented (migration `0013_client_privacy`, ADR-032):** client row anonymized (`erased_at`), notes, communications and measurements deleted, appointment text cleared. |
 | Cancelled tenants | Export available for 90 days, then anonymize/purge per Terms |
 
 ## 6. Multi-currency readiness

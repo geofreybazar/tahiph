@@ -117,7 +117,7 @@ The client IP comes from `CF-Connecting-IP`, trusted only when the request arriv
 
 ### 7.1 Permission catalogue (code-defined, in `packages/types`)
 ```
-clients.read  clients.write  clients.archive
+clients.read  clients.write  clients.archive  clients.privacy   # privacy: export + erasure (ADR-032)
 measurements.read  measurements.write
 appointments.read  appointments.write  appointments.manage_settings
 catalog.read  catalog.write
@@ -137,7 +137,8 @@ audit.read
 
 | Permission group | Owner | Admin | Designer | Tailor | Staff |
 |---|:-:|:-:|:-:|:-:|:-:|
-| clients.* | ✓ | ✓ | ✓ | read | ✓ |
+| clients.* (except privacy) | ✓ | ✓ | ✓ | read | ✓ |
+| clients.privacy | ✓ | — | — | — | — |
 | measurements.* | ✓ | ✓ | ✓ | read | write |
 | appointments.* | ✓ | ✓ | ✓ | read | ✓ |
 | catalog.* | ✓ | ✓ | ✓ | read | read |
@@ -150,6 +151,8 @@ audit.read
 | staff / roles | ✓ | ✓ | — | — | — |
 | reports.financial | ✓ | ✓ | — | — | — |
 | tenant.billing / merchant_account / transfer_ownership | ✓ | — | — | — | — |
+
+`clients.privacy` is the Owner's by default, but unlike the owner-only permissions it can be granted to a custom role.
 
 \* "Approve" means approving internal discount overrides above a threshold. Customers accept quotations through the storefront link.
 

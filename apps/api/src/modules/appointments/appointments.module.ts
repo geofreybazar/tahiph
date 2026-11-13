@@ -12,5 +12,6 @@ import { AppointmentsService } from './appointments.service.js';
   imports: [ClientsModule, TenantsModule],
   controllers: [AppointmentTypesController, StaffScheduleController, AppointmentsController],
   providers: [AppointmentsService],
+  exports: [AppointmentsService],
 })
 export class AppointmentsModule {}

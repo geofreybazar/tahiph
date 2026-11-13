@@ -25,6 +25,7 @@ import { AppointmentsModule } from '../src/modules/appointments/appointments.mod
 import { MeasurementsModule } from '../src/modules/measurements/measurements.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
 import { UploadsModule } from '../src/modules/uploads/uploads.module.js';
+import { PrivacyModule } from '../src/modules/privacy/privacy.module.js';
 import { Browser } from './browser.js';
 import {
   addMember,
@@ -129,6 +130,8 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'CatalogImagesController.remove': () => ({}),
   'LogoController.confirm': () => ({}),
   'LogoController.remove': () => ({}),
+  'PrivacyController.export': () => ({}),
+  'PrivacyController.erase': () => ({ reason: 'DATA_SUBJECT_REQUEST' }),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
     direction: 'INBOUND',
@@ -332,6 +335,14 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         timeOff,
         catalogImage: image('CATALOG_ITEM_IMAGE'),
         logo: image('LOGO'),
+        // Fresh per request: the own-id control erases it.
+        erasableClient: () =>
+          asTenant(prisma, tenant.tenantId, async (tx) => {
+            const c = await tx.client.create({
+              data: { tenantId: tenant.tenantId, firstName: 'Lia' },
+            });
+            return c.id;
+          }),
       },
       resources: {
         catalogCategory: catalog.category.id,
@@ -391,6 +402,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         AppointmentsModule,
         CatalogModule,
         UploadsModule,
+        PrivacyModule,
         PlatformModule,
       ],
     })
@@ -466,6 +478,8 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'CatalogItemsController.create',
         'CatalogImagesController.confirm',
         'LogoController.remove',
+        'PrivacyController.export',
+        'PrivacyController.erase',
         'OptionGroupsController.updateOption',
         'RolesController.update',
         'AuthController.switchTenant',

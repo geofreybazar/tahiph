@@ -7,6 +7,8 @@ export const TENANT_PERMISSIONS = [
   'clients.read',
   'clients.write',
   'clients.archive',
+  /** Export a client's data and erase it (RA 10173, ADR-032). */
+  'clients.privacy',
   'measurements.read',
   'measurements.write',
   'appointments.read',
@@ -64,6 +66,9 @@ export const OWNER_ONLY_PERMISSIONS: readonly TenantPermission[] = [
   'tenant.transfer_ownership',
 ];
 
+/** Owner by default, but grantable to custom roles (unlike OWNER_ONLY_PERMISSIONS). */
+const OWNER_DEFAULT_PERMISSIONS: readonly TenantPermission[] = ['clients.privacy'];
+
 export const SYSTEM_ROLE_KEYS = ['owner', 'admin', 'designer', 'tailor', 'staff'] as const;
 export type SystemRoleKey = (typeof SYSTEM_ROLE_KEYS)[number];
 
@@ -79,7 +84,9 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
   {
     key: 'admin',
     name: 'Admin',
-    permissions: ALL_TENANT.filter((p) => !OWNER_ONLY_PERMISSIONS.includes(p)),
+    permissions: ALL_TENANT.filter(
+      (p) => !OWNER_ONLY_PERMISSIONS.includes(p) && !OWNER_DEFAULT_PERMISSIONS.includes(p),
+    ),
   },
   {
     key: 'designer',

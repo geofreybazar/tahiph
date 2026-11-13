@@ -252,6 +252,29 @@ export class MeasurementsService {
     return rows.map(toRecord);
   }
 
+  /** Every revision of a client's measurements, oldest first (data export, ADR-032). */
+  async exportForClient(clientId: string) {
+    const rows = await this.tenantDb.db().measurementRecord.findMany({
+      where: { clientId },
+      orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
+      include: RECORD_INCLUDE,
+    });
+    return rows.map(toRecord);
+  }
+
+  /**
+   * Deletes a client's measurements through erase_client_measurements(), the only path the
+   * immutability trigger allows (migration 0013, ADR-032). Returns the records deleted.
+   */
+  async eraseForClient(clientId: string): Promise<number> {
+    return this.tenantDb.withTenantTx(async () => {
+      const [row] = await this.tenantDb.db().$queryRaw<
+        { n: number }[]
+      >`SELECT erase_client_measurements(${clientId}::uuid) AS n`;
+      return row?.n ?? 0;
+    });
+  }
+
   async record(recordId: string) {
     const r = await this.tenantDb.db().measurementRecord.findFirst({
       where: { id: recordId },
