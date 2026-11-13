@@ -82,7 +82,7 @@ Work items:
 - [x] `feat/appointments` (step 6a, merged 2026-11-11): types, staff availability and time off, slots, booking with the exclusion constraint, reschedule and status changes (ADR-028). Meets the exit criterion "double-booking concurrency test passes".
 - [x] `feat/appointment-reminders` (step 6b, merged 2026-11-11): 24-hour email reminders from the worker, first tenant-scoped background job (ADR-029).
 - [x] `feat/catalog` (step 7, merged 2026-11-11): categories, products and services, shared option groups (ADR-030).
-- [ ] `feat/uploads` (in review, step 8): presigned image uploads to R2 (RustFS locally), worker verification and WebP re-encoding, catalogue item images and the atelier logo (ADR-031). Meets the exit criterion "uploads are validated".
+- [x] `feat/uploads` (step 8, merged 2026-11-13): presigned image uploads to R2 (RustFS locally), worker verification and WebP re-encoding, catalogue item images and the atelier logo (ADR-031). Meets the exit criterion "uploads are validated".
 - [ ] Proposed, not yet approved: client data export and erasure (RA 10173, `SECURITY.md` §4), before launch.
 
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
