@@ -140,6 +140,7 @@ All versions are pinned exactly (no ranges) in `package.json` files.
 **Status:** Accepted (2026-11-11)
 **Context:** MinIO stopped publishing community Docker images in 2025, and nothing needs object storage before uploads (Phase 3).
 **Decision:** Local S3 emulation is omitted from Phase 1. An S3-compatible local option is evaluated in Phase 3.
+**Update (2026-11-13):** resolved by ADR-031 (RustFS locally).
 
 ## ADR-017 — Library build layout (`tsconfig.json` vs `tsconfig.build.json`)
 **Status:** Accepted (2026-11-11)
@@ -355,3 +356,17 @@ All 15 correctness checks passed, including 3,000 concurrent operations across 5
 - **Nothing is deleted**; categories, items, groups and options are archived. Archived groups stay on items that have them but cannot be attached anew; archived categories cannot be assigned anew.
 - Tables are prefixed `catalog_` (`OPTION` is an SQL keyword). The cross-tenant suite now also handles arrays of ids in request bodies.
 **Consequences:** Item photos wait for uploads (step 8); price calculation and snapshots for Phase 4; storefront display for Phase 5.
+
+## ADR-031 — Uploads: AWS SDK v3 against R2, RustFS locally, sharp re-encoding in the worker
+**Status:** Accepted (2026-11-13, product owner approved step 8 and all four recommendations)
+**Context:** Phase 3 needs validated image uploads (exit criterion) for catalogue items and the atelier logo. Production storage is Cloudflare R2 (no egress fees). MinIO's community repository was archived in April 2026 (ADR-016). R2 has no presigned POST, and is reported not to enforce a signed `Content-Length`.
+**Decision:**
+- **S3 client:** `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` 3.1161.0, pinned, used only in `core/storage/StorageService`. Chosen over `aws4fetch` (unmaintained since 2024; signing only) and the `minio` client. Path-style addressing; `requestChecksumCalculation: WHEN_REQUIRED` so presigned PUTs carry no checksum a browser can't send.
+- **Local and CI storage:** RustFS `1.0.4` (Apache-2.0, one container, keys from env) in `docker-compose.yml` and the CI integration job. Garage is the fallback if RustFS falls behind. `npm run setup-storage -w @tahi/api` (and the integration `globalSetup`) creates the bucket with CORS and the `pending/` expiry rule; the R2 bucket is configured by hand (`DEPLOYMENT.md` §7).
+- **Image processing:** `sharp` 0.35.5 (prebuilt libvips, no install script ran; Alpine image uses `@img/sharp-linuxmusl-x64`). The worker checks the real format from the bytes, re-encodes to WebP (display ≤ 2048 px, thumb ≤ 400 px), which drops EXIF/GPS, and deletes the original. Inputs over 40 MP are refused. **HEIC is not accepted** (sharp's prebuilt build can't decode it); jpeg/png/webp ≤ 10 MB.
+- **Flow:** create (`POST` on the owner) → browser `PUT` to a 5-minute presigned URL → `confirm` (HEAD: real size ≤ 10 MB and stored type = declared type, else `REJECTED`; nothing stored yet → 409 `UPLOAD_NOT_RECEIVED`) → `media` BullMQ job via `TenantJobRunner` → `READY`/`REJECTED`. Confirm is idempotent and re-queues a `PROCESSING` asset (job id = asset id).
+- **Routes live under their owner** so each has a static permission: `tenant/catalog/items/:id/images` (`catalog.read`/`catalog.write`) and `tenant/settings/logo` (`tenant.settings`; reading the logo needs only an active membership). This replaces the generic `POST /uploads/presign` + `/uploads/confirm` sketched in `SECURITY.md`.
+- **Keys** derive from tenant and asset id (`t/{tenantId}/media/{id}/display.webp|thumb.webp`), so the table stores none. Raw uploads go to `pending/{tenantId}/{id}`, because lifecycle rules match a key prefix and `t/{tenantId}/pending/` could not be expired by one rule.
+- **One logo per atelier:** when a logo becomes `READY`, the worker deletes every older logo (rows and objects).
+- Measured on RustFS 1.0.4: it enforces the signed length but **not** the signed content type, which confirm's type check covers.
+**Consequences:** The API needs `S3_*` env (validated at boot) and reaches R2 over the edge network. Not done yet: client attachments, measurement photos, payment proofs and PDFs; per-plan storage quotas; a cap on images per item; alt text and focal point; public CDN delivery for the storefront (Phase 5); a sweep for `PENDING` rows that are never confirmed (their objects expire, the rows remain); and orphan objects if a delete's storage call fails after the row is gone.

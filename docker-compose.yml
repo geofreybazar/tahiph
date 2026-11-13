@@ -41,6 +41,19 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
 
+  # S3-compatible object storage for uploads (ADR-031). Run `npm run setup-storage -w @tahi/api`
+  # once to create the bucket. Production uses Cloudflare R2.
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:?set in .env}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:?set in .env}
+    ports:
+      - '127.0.0.1:9000:9000'
+    volumes:
+      - s3data:/data
+
   mailpit:
     image: axllent/mailpit:v1
     restart: unless-stopped
@@ -51,3 +64,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  s3data:

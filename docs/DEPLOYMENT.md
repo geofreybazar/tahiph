@@ -107,3 +107,5 @@ echo "$(date -u +%FT%TZ) $TAG" >> releases.log
 - [ ] Secrets present only in the VPS `.env` and GitHub Environments
 - [ ] Health checks green; rollback tested
 - [ ] Cloudflare WAF and rate limiting configured; webhooks path excluded from bot challenges
+- [ ] R2 bucket `tahi-media` created (private, no public access) with: CORS allowing `PUT`/`GET` from `https://app.tahi.ph` with header `content-type`; a lifecycle rule deleting objects under `pending/` after 1 day; an API token scoped to Object Read & Write on this bucket only, set as `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` (ADR-031)
+- [ ] One real upload tested against R2: an oversized PUT on a signed URL is rejected at confirm (R2 does not enforce the signed length)

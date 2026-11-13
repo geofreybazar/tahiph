@@ -58,10 +58,22 @@ jobs:
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+      # Uploads storage (ADR-031); same image as docker-compose.yml. The bucket is created by
+      # the integration globalSetup.
+      rustfs:
+        image: rustfs/rustfs:1.0.4
+        env:
+          RUSTFS_ACCESS_KEY: ci-s3-key
+          RUSTFS_SECRET_KEY: ci-s3-secret-key
+        ports: ['9000:9000']
     env:
       # The suite runs as the least-privilege app role, so RLS is really enforced.
       DATABASE_URL: postgresql://tahi_app:ci-app@localhost:5432/tahi
       REDIS_URL: redis://localhost:6379/0
+      S3_ENDPOINT: http://localhost:9000
+      S3_BUCKET: tahi-ci
+      S3_ACCESS_KEY_ID: ci-s3-key
+      S3_SECRET_ACCESS_KEY: ci-s3-secret-key
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

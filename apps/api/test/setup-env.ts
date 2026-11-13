@@ -11,3 +11,8 @@ process.env.APP_PUBLIC_URL ??= 'http://app.tahi.test';
 process.env.STOREFRONT_URL_TEMPLATE ??= 'http://{host}';
 // Test-only key, generated per run.
 process.env.ENCRYPTION_KEYS ??= `test:${randomBytes(32).toString('base64')}`;
+// Local RustFS (docker-compose.yml); CI sets its own. Not secrets: a throwaway test store.
+process.env.S3_ENDPOINT ??= 'http://127.0.0.1:9000';
+process.env.S3_BUCKET ??= 'tahi-test';
+process.env.S3_ACCESS_KEY_ID ??= 'tahi-test';
+process.env.S3_SECRET_ACCESS_KEY ??= 'tahi-test-secret';

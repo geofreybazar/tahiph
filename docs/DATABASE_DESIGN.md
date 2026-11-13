@@ -90,7 +90,9 @@
 - `OptionGroup` / `Option`: fabric, material, customization, with price deltas
 - `MediaAsset`: images with focal point and alt text
 
-**Implemented (Phase 3, migration `0011_catalog`, ADR-030):** `CatalogCategory`, `CatalogItem` (one table for products and services), `CatalogOptionGroup`, `CatalogOption` (price delta, may be negative) and `CatalogItemOptionGroup` (shared groups, ordered). `MediaAsset` waits for uploads.
+**Implemented (Phase 3, migration `0011_catalog`, ADR-030):** `CatalogCategory`, `CatalogItem` (one table for products and services), `CatalogOptionGroup`, `CatalogOption` (price delta, may be negative) and `CatalogItemOptionGroup` (shared groups, ordered). `MediaAsset` came with uploads (below).
+
+**Implemented (Phase 3, migration `0012_media_assets`, ADR-031):** `MediaAsset` (purpose `LOGO` or `CATALOG_ITEM_IMAGE`, status `PENDING` → `PROCESSING` → `READY`/`REJECTED`, uploader membership, rendition width/height). Object keys derive from tenant and id, so none are stored. CHECK: a catalogue image has a `catalog_item_id`, a logo has none. Focal point and alt text are not implemented yet.
 
 **Sales**
 - `Quotation`: number, clientId, status (`DRAFT`/`SENT`/`ACCEPTED`/`REJECTED`/`EXPIRED`/`CONVERTED`), validUntil, subtotal, discount, tax, total, revision, `supersedesId?`

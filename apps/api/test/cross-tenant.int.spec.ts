@@ -24,6 +24,7 @@ import { CatalogModule } from '../src/modules/catalog/catalog.module.js';
 import { AppointmentsModule } from '../src/modules/appointments/appointments.module.js';
 import { MeasurementsModule } from '../src/modules/measurements/measurements.module.js';
 import { TenantsModule } from '../src/modules/tenants/tenants.module.js';
+import { UploadsModule } from '../src/modules/uploads/uploads.module.js';
 import { Browser } from './browser.js';
 import {
   addMember,
@@ -121,6 +122,13 @@ const SAMPLES: Record<string, () => Record<string, unknown>> = {
   'OptionGroupsController.updateOption': () => ({ name: `Piña ${suffix()}` }),
   'OptionGroupsController.archiveOption': () => ({}),
   'OptionGroupsController.restoreOption': () => ({}),
+  'CatalogImagesController.list': () => ({}),
+  'CatalogImagesController.create': () => ({ contentType: 'image/png', size: 100 }),
+  // Own id: nothing was uploaded, so 409; foreign: 404.
+  'CatalogImagesController.confirm': () => ({}),
+  'CatalogImagesController.remove': () => ({}),
+  'LogoController.confirm': () => ({}),
+  'LogoController.remove': () => ({}),
   'ClientsController.addCommunication': () => ({
     channel: 'CALL',
     direction: 'INBOUND',
@@ -301,9 +309,30 @@ describe('Cross-tenant isolation for every route (integration)', () => {
       });
       return { category, item, group, option };
     });
+    // Fresh per request: the own-id control may delete it.
+    const image = (purpose: 'LOGO' | 'CATALOG_ITEM_IMAGE') => () =>
+      asTenant(prisma, tenant.tenantId, async (tx) => {
+        const m = await tx.mediaAsset.create({
+          data: {
+            tenantId: tenant.tenantId,
+            purpose,
+            contentType: 'image/png',
+            catalogItemId: purpose === 'CATALOG_ITEM_IMAGE' ? catalog.item.id : null,
+            createdByMembershipId: member.id,
+          },
+        });
+        return m.id;
+      });
     return {
       tenant,
-      fresh: { clientNote: note, measurementRecord: record, appointment, timeOff },
+      fresh: {
+        clientNote: note,
+        measurementRecord: record,
+        appointment,
+        timeOff,
+        catalogImage: image('CATALOG_ITEM_IMAGE'),
+        logo: image('LOGO'),
+      },
       resources: {
         catalogCategory: catalog.category.id,
         catalogItem: catalog.item.id,
@@ -361,6 +390,7 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         MeasurementsModule,
         AppointmentsModule,
         CatalogModule,
+        UploadsModule,
         PlatformModule,
       ],
     })
@@ -434,6 +464,8 @@ describe('Cross-tenant isolation for every route (integration)', () => {
         'StaffScheduleController.deleteTimeOff',
         'CatalogItemsController.setOptionGroups',
         'CatalogItemsController.create',
+        'CatalogImagesController.confirm',
+        'LogoController.remove',
         'OptionGroupsController.updateOption',
         'RolesController.update',
         'AuthController.switchTenant',

@@ -33,10 +33,12 @@
 - **Logging:** PII and secret redaction. Logs never contain tokens, passwords or measurement values.
 
 ### File uploads
-1. Client requests `POST /uploads/presign {purpose, contentType, size}`. The server checks the purpose's allow-list (images: jpeg/png/webp/heic ≤ 10 MB; documents: pdf ≤ 10 MB).
-2. The presigned PUT is bound to the exact key, content type and content length, and expires in 5 min.
-3. `POST /uploads/confirm` → the worker verifies magic bytes, re-encodes images (strips EXIF/GPS) and creates thumbnails. Files are not referenceable until confirmed.
-4. Object keys are tenant-prefixed (`t/{tenantId}/…`). Private by default; served via short-lived presigned GET after an authorization check.
+Implemented in Phase 3 step 8 (ADR-031) for images; documents (pdf) are not implemented yet.
+1. The client requests an upload on the owning resource (`POST /tenant/catalog/items/:id/images`, `POST /tenant/settings/logo`) with `{contentType, size}`. Allowed: jpeg/png/webp ≤ 10 MB. HEIC is not accepted (the image library cannot decode it).
+2. The presigned PUT is signed for the exact key, content type and content length, and expires in 5 min. Storage may not enforce all of these (R2 is reported not to enforce the length; local RustFS does not enforce the type), so step 3 re-checks.
+3. `POST …/:imageId/confirm` reads the stored object's size and type and rejects a mismatch; then the worker verifies the format from the file's bytes, re-encodes to WebP (dropping EXIF/GPS), makes a thumbnail and deletes the original. Only `READY` images are served.
+4. Kept images are tenant-prefixed (`t/{tenantId}/…`); raw uploads wait under `pending/{tenantId}/…`, expired by a 1-day bucket rule. The bucket is private; images are served via 15-minute presigned GETs after an authorization check.
+5. Decoding is capped at 40 megapixels (decompression bombs).
 
 ### Infrastructure (see `DEPLOYMENT.md`)
 - Only Traefik publishes ports (80/443). PostgreSQL and Redis live on an internal Docker network with no published ports.

@@ -104,7 +104,7 @@ Docker volumes are **not** a backup.
 
 ## 7. Local development (`docker-compose.yml`)
 
-- Runs only the infrastructure: `postgres` (published on `127.0.0.1:5432` for local tools), `redis` and `mailpit` (email capture). A local S3-compatible store is added in Phase 3 with uploads; MinIO no longer publishes community images (ADR-016).
+- Runs only the infrastructure: `postgres` (published on `127.0.0.1:5432` for local tools), `redis`, `mailpit` (email capture) and `rustfs` (S3-compatible uploads storage on `127.0.0.1:9000`, ADR-031; MinIO no longer publishes community images, ADR-016). Create the bucket once with `npm run setup-storage -w @tahi/api`.
 - Apps run on the host with `turbo dev` for fast reload. A `full` profile runs app containers for parity testing.
 - Seed script: two demo tenants (A and B) for cross-tenant manual testing.
 

@@ -12,3 +12,4 @@ export * from './clients.js';
 export * from './measurements.js';
 export * from './appointments.js';
 export * from './catalog.js';
+export * from './uploads.js';

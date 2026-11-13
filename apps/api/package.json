@@ -14,9 +14,12 @@
     "test": "vitest run --project unit",
     "test:int": "vitest run --project integration",
     "create-super-admin": "node dist/cli/main.create-super-admin.js",
-    "openapi": "node dist/cli/main.export-openapi.js"
+    "openapi": "node dist/cli/main.export-openapi.js",
+    "setup-storage": "node --env-file-if-exists=.env dist/cli/main.setup-storage.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1161.0",
+    "@aws-sdk/s3-request-presigner": "3.1161.0",
     "@nestjs/bullmq": "12.0.1",
     "@nestjs/common": "12.4.2",
     "@nestjs/core": "12.4.2",
@@ -32,6 +35,7 @@
     "pino-http": "11.0.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
+    "sharp": "0.35.5",
     "zod": "4.6.7"
   },
   "devDependencies": {

@@ -12,6 +12,7 @@ import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
 import { MeasurementsModule } from './modules/measurements/measurements.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
+import { UploadsModule } from './modules/uploads/uploads.module.js';
 
 /** HTTP API composition root. Domain modules are added here from Phase 2. */
 @Module({
@@ -28,6 +29,7 @@ import { TenantsModule } from './modules/tenants/tenants.module.js';
     MeasurementsModule,
     AppointmentsModule,
     CatalogModule,
+    UploadsModule,
     PlatformModule,
   ],
 })

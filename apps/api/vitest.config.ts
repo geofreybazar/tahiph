@@ -15,7 +15,12 @@ export default defineConfig({
       },
       {
         extends: true,
-        test: { name: 'integration', include: ['test/**/*.int.spec.ts'], testTimeout: 30_000 },
+        test: {
+          name: 'integration',
+          include: ['test/**/*.int.spec.ts'],
+          globalSetup: ['./test/global-setup.ts'],
+          testTimeout: 30_000,
+        },
       },
     ],
   },

@@ -10,6 +10,10 @@ const valid = {
   STOREFRONT_ROOT_DOMAIN: 'tahi.ph',
   APP_PUBLIC_URL: 'https://app.tahi.ph/',
   ENCRYPTION_KEYS: `k1:${Buffer.alloc(32, 7).toString('base64')}`,
+  S3_ENDPOINT: 'https://acct.r2.cloudflarestorage.com',
+  S3_BUCKET: 'tahi-media',
+  S3_ACCESS_KEY_ID: 'key',
+  S3_SECRET_ACCESS_KEY: 'secret',
 };
 
 describe('loadEnv', () => {

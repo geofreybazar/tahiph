@@ -46,6 +46,8 @@ export type ResourceKind =
   | 'catalogItem'
   | 'optionGroup'
   | 'catalogOption'
+  | 'catalogImage'
+  | 'logo'
   | (string & {});
 
 /**

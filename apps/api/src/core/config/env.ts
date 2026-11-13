@@ -9,7 +9,7 @@ const hostname = z
     'must be a lower-case hostname',
   );
 
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
@@ -55,6 +55,15 @@ const envSchema = z.object({
   MAILPIT_URL: z.url({ protocol: /^https?$/ }).default('http://127.0.0.1:8025'),
   RESEND_API_KEY: z.string().min(1).optional(),
   /**
+   * S3-compatible object storage (ADR-031): Cloudflare R2 in production, RustFS locally.
+   * Browsers PUT to presigned URLs on this endpoint, so it must be reachable from them.
+   */
+  S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
+  S3_REGION: z.string().min(1).default('auto'),
+  S3_BUCKET: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/, 'must be a bucket name'),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  /**
    * AES-256-GCM key ring for secrets at rest: "id:base64(32 bytes)[,id:...]", first = active.
    * Generate with: echo "k1:$(openssl rand -base64 32)"
    */
@@ -81,6 +90,13 @@ const refinedEnvSchema = envSchema.superRefine((env, ctx) => {
       code: 'custom',
       path: ['EMAIL_TRANSPORT'],
       message: 'log transport is not allowed in production',
+    });
+  }
+  if (env.NODE_ENV === 'production' && !env.S3_ENDPOINT.startsWith('https://')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['S3_ENDPOINT'],
+      message: 'must use https in production',
     });
   }
   if (env.NODE_ENV === 'production' && !env.APP_PUBLIC_URL.startsWith('https://')) {

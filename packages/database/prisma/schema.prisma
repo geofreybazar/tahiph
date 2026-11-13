@@ -286,6 +286,7 @@ model Tenant {
   catalogCategories CatalogCategory[]
   catalogItems      CatalogItem[]
   optionGroups      CatalogOptionGroup[]
+  mediaAssets       MediaAsset[]
 
   @@map("tenant")
 }
@@ -362,6 +363,7 @@ model TenantMembership {
   staffAvailability  StaffAvailability[]
   timeOff            StaffTimeOff[]
   appointments       Appointment[]
+  mediaAssets        MediaAsset[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, userId])
@@ -835,6 +837,7 @@ model CatalogItem {
   tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   category     CatalogCategory?         @relation(fields: [tenantId, categoryId], references: [tenantId, id], onDelete: Restrict)
   optionGroups CatalogItemOptionGroup[]
+  images       MediaAsset[]
 
   @@unique([tenantId, id])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
@@ -896,4 +899,48 @@ model CatalogItemOptionGroup {
   @@index([tenantId, itemId])
   @@index([tenantId, groupId])
   @@map("catalog_item_option_group")
+}
+
+enum MediaPurpose {
+  LOGO
+  CATALOG_ITEM_IMAGE
+}
+
+/// PENDING: upload URL issued. PROCESSING: confirmed, worker re-encoding. READY: usable.
+/// REJECTED: missing, too large or not a real image (ADR-031).
+enum MediaStatus {
+  PENDING
+  PROCESSING
+  READY
+  REJECTED
+}
+
+/// An uploaded image. Objects live under t/{tenantId}/ in the bucket; keys derive from the id.
+/// The original is deleted after re-encoding, so EXIF/GPS never persists (SECURITY.md).
+model MediaAsset {
+  id                    String       @id @default(uuid(7)) @db.Uuid
+  tenantId              String       @map("tenant_id") @db.Uuid
+  purpose               MediaPurpose
+  status                MediaStatus  @default(PENDING)
+  /// Declared by the client; the signed upload is bound to it.
+  contentType           String       @map("content_type")
+  /// Required for CATALOG_ITEM_IMAGE only (CHECK).
+  catalogItemId         String?      @map("catalog_item_id") @db.Uuid
+  createdByMembershipId String       @map("created_by_membership_id") @db.Uuid
+  /// Pixel size of the display rendition, set when READY.
+  width                 Int?
+  height                Int?
+  rejectReason          String?      @map("reject_reason")
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  catalogItem CatalogItem?     @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  createdBy   TenantMembership @relation(fields: [tenantId, createdByMembershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, purpose, createdAt])
+  @@index([tenantId, catalogItemId, createdAt])
+  @@index([tenantId, createdByMembershipId])
+  @@map("media_asset")
 }
