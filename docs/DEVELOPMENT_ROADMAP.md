@@ -83,13 +83,13 @@ Work items:
 - [x] `feat/appointment-reminders` (step 6b, merged 2026-11-11): 24-hour email reminders from the worker, first tenant-scoped background job (ADR-029).
 - [x] `feat/catalog` (step 7, merged 2026-11-11): categories, products and services, shared option groups (ADR-030).
 - [x] `feat/uploads` (step 8, merged 2026-11-13): presigned image uploads to R2 (RustFS locally), worker verification and WebP re-encoding, catalogue item images and the atelier logo (ADR-031). Meets the exit criterion "uploads are validated".
-- [ ] `feat/client-privacy` (in review, approved 2026-11-13): client data export and erasure (RA 10173, ADR-032), before launch. Legal review still required.
+- [x] `feat/client-privacy` (merged 2026-11-13): client data export and erasure (RA 10173, ADR-032), before launch. Legal review still required.
 
 Business profile and settings (hours, holidays, timezone, tax); staff management; clients (CRM); garment categories; measurement templates and immutable records; appointment types, availability, booking with the exclusion constraint and reminders; catalogue (products, services, options); uploads pipeline.
 
 **Exit criteria:** the double-booking concurrency test passes (parallel inserts → exactly one succeeds); measurement revisions are immutable; uploads are validated. All three met; CI green on `main` (run 43384877509, 2026-11-13). Phase 3 approved by the product owner on 2026-11-13.
 
-**Carried forward (not Phase 3 scope):** a real-R2 upload test (`DEPLOYMENT.md` §7); client data export and erasure (in review above); upload follow-ups listed in ADR-031.
+**Carried forward (not Phase 3 scope):** a real-R2 upload test (`DEPLOYMENT.md` §7); client data export and erasure is built (above) but needs legal review; upload follow-ups listed in ADR-031.
 
 ## Phase 4 — Sales & operations
 Quotations (revisions, send link, accept/reject, expiry job); quotation → order conversion (transactional, idempotent); orders with snapshots and timeline; production workflows/stages/jobs/assignments; fittings and alterations; **manual payment recording** with acknowledgment receipts; balances; refunds (manual); email notifications; business dashboard KPIs.
