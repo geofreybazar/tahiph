@@ -43,6 +43,11 @@ describe('Redis services (integration: real Redis)', () => {
   });
 
   it('delivers a queued email through the worker processor', async () => {
+    // Its own Redis database: worker.int.spec runs the real worker, whose email consumer
+    // would otherwise take this job when both files run at once.
+    const url = new URL(process.env.REDIS_URL!);
+    url.pathname = '/1';
+    process.env.REDIS_URL = url.toString();
     const delivered: EmailMessage[] = [];
     @Module({ imports: [CoreModule, QueueModule, MailerModule, EmailWorkerModule] })
     class Both {}
